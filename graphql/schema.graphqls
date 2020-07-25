@@ -1,0 +1,141 @@
+type Activity {
+  id: ID!
+  description: String!
+  positive: Boolean!
+  userId: String!
+  fundAmt: Int!
+}
+
+type ActivityAction {
+  id: ID!
+  actionTimestamp: Int!
+  activityId: Int!
+}
+
+type ActivityActionCount {
+  activityId: Int!
+  count: Int!
+  day: String!
+}
+
+type Mutation {
+  createWishItem(
+    accessToken: String!
+    userId: String!
+    description: String!
+    price: Int!
+    source: String
+    priority: Priority!
+    status: Status!
+  ): Result
+  updateWishItem(
+    accessToken: String!
+    userId: String!
+    id: String!
+    description: String
+    price: Int
+    source: String
+    priority: Priority
+    status: Status
+  ): Result
+  createActivity(
+    accessToken: String!
+    userId: String!
+    description: String!
+    fundAmt: Int!
+    positive: Boolean
+  ): Result
+  performActivity(
+    accessToken: String!
+    userId: String!
+    activityId: Int!
+  ): Result
+}
+
+enum Priority {
+  VERY_HIGH
+  HIGH
+  MEDIUM
+  LOW
+  VERY_LOW
+}
+
+type Query {
+  getWishItemsForUser(
+    accessToken: String!
+    userId: String!
+    filter: String
+  ): ResultWishItemsForUser
+  getActivitiesForUser(
+    accessToken: String!
+    userId: String!
+  ): ResultActivitiesForUser
+  getTodaysActivities(
+    accessToken: String!
+    userId: String!
+  ): ResultTodaysActivities
+  getCurrentFunds(accessToken: String!, userId: String!): ResultCurrentFunds
+  getActivityActionCount(
+    accessToken: String!
+    userId: String!
+  ): ResultActivityActionCount
+}
+
+type Result {
+  success: Boolean!
+  error: String
+}
+
+type ResultActivitiesForUser {
+  success: Boolean!
+  error: String
+  data: [Activity]
+}
+
+type ResultActivityActionCount {
+  success: Boolean!
+  error: String
+  data: [ActivityActionCount]
+}
+
+type ResultCurrentFunds {
+  success: Boolean!
+  error: String
+  data: Int
+}
+
+type ResultTodaysActivities {
+  success: Boolean!
+  error: String
+  data: [ResultTodaysActivity]
+}
+
+type ResultTodaysActivity {
+  activityId: Int!
+  timestamp: Int!
+  description: String!
+  positive: Boolean!
+  fundAmt: Int!
+}
+
+type ResultWishItemsForUser {
+  success: Boolean!
+  error: String
+  data: [WishItem]
+}
+
+enum Status {
+  bought
+  not_bought
+  disabled
+}
+
+type WishItem {
+  id: ID!
+  description: String!
+  userId: String!
+  price: Int!
+  source: String
+  priority: String!
+  status: String!
+}
