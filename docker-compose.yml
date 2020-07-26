@@ -1,0 +1,16 @@
+version: "2.0"
+services:
+  backend:
+    build: .
+    ports:
+      - "8732:8080"
+    links:
+      - db
+  db:
+    image: postgres
+    ports:
+      - "8733:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: gushkinlocal
