@@ -3,6 +3,7 @@ type Activity {
   description: String!
   positive: Boolean!
   fundAmt: Int!
+  actions: [ActivityAction]
 }
 
 type ActivityAction {
@@ -15,6 +16,15 @@ type ActivityActionCount {
   activity: Activity!
   count: Int!
   day: String!
+}
+
+type WishItem {
+  id: ID!
+  description: String!
+  price: Int!
+  source: String
+  priority: String!
+  status: String!
 }
 
 input NewWishItemInput {
@@ -76,13 +86,4 @@ enum Status {
   bought
   not_bought
   disabled
-}
-
-type WishItem {
-  id: ID!
-  description: String!
-  price: Int!
-  source: String
-  priority: String!
-  status: String!
 }

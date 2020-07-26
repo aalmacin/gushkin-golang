@@ -44,6 +44,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Activity struct {
+		Actions     func(childComplexity int) int
 		Description func(childComplexity int) int
 		FundAmt     func(childComplexity int) int
 		ID          func(childComplexity int) int
@@ -115,6 +116,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Activity.actions":
+		if e.complexity.Activity.Actions == nil {
+			break
+		}
+
+		return e.complexity.Activity.Actions(childComplexity), true
 
 	case "Activity.description":
 		if e.complexity.Activity.Description == nil {
@@ -405,6 +413,7 @@ var sources = []*ast.Source{
   description: String!
   positive: Boolean!
   fundAmt: Int!
+  actions: [ActivityAction]
 }
 
 type ActivityAction {
@@ -417,6 +426,15 @@ type ActivityActionCount {
   activity: Activity!
   count: Int!
   day: String!
+}
+
+type WishItem {
+  id: ID!
+  description: String!
+  price: Int!
+  source: String
+  priority: String!
+  status: String!
 }
 
 input NewWishItemInput {
@@ -478,15 +496,6 @@ enum Status {
   bought
   not_bought
   disabled
-}
-
-type WishItem {
-  id: ID!
-  description: String!
-  price: Int!
-  source: String
-  priority: String!
-  status: String!
 }
 `, BuiltIn: false},
 }
@@ -806,6 +815,37 @@ func (ec *executionContext) _Activity_fundAmt(ctx context.Context, field graphql
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Activity_actions(ctx context.Context, field graphql.CollectedField, obj *model.Activity) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Activity",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Actions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ActivityAction)
+	fc.Result = res
+	return ec.marshalOActivityAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ActivityAction_id(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
@@ -2907,6 +2947,8 @@ func (ec *executionContext) _Activity(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "actions":
+			out.Values[i] = ec._Activity_actions(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3900,6 +3942,57 @@ func (ec *executionContext) marshalOActivity2ᚖgithubᚗcomᚋaalmacinᚋgushki
 		return graphql.Null
 	}
 	return ec._Activity(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOActivityAction2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v model.ActivityAction) graphql.Marshaler {
+	return ec._ActivityAction(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOActivityAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v []*model.ActivityAction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOActivityAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOActivityAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v *model.ActivityAction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ActivityAction(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOActivityActionCount2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx context.Context, sel ast.SelectionSet, v model.ActivityActionCount) graphql.Marshaler {
