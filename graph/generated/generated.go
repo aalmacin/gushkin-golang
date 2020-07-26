@@ -48,19 +48,18 @@ type ComplexityRoot struct {
 		FundAmt     func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Positive    func(childComplexity int) int
-		UserID      func(childComplexity int) int
 	}
 
 	ActivityAction struct {
 		ActionTimestamp func(childComplexity int) int
-		ActivityID      func(childComplexity int) int
+		Activity        func(childComplexity int) int
 		ID              func(childComplexity int) int
 	}
 
 	ActivityActionCount struct {
-		ActivityID func(childComplexity int) int
-		Count      func(childComplexity int) int
-		Day        func(childComplexity int) int
+		Activity func(childComplexity int) int
+		Count    func(childComplexity int) int
+		Day      func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -85,7 +84,6 @@ type ComplexityRoot struct {
 		Priority    func(childComplexity int) int
 		Source      func(childComplexity int) int
 		Status      func(childComplexity int) int
-		UserID      func(childComplexity int) int
 	}
 }
 
@@ -146,13 +144,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Activity.Positive(childComplexity), true
 
-	case "Activity.userId":
-		if e.complexity.Activity.UserID == nil {
-			break
-		}
-
-		return e.complexity.Activity.UserID(childComplexity), true
-
 	case "ActivityAction.actionTimestamp":
 		if e.complexity.ActivityAction.ActionTimestamp == nil {
 			break
@@ -160,12 +151,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ActivityAction.ActionTimestamp(childComplexity), true
 
-	case "ActivityAction.activityId":
-		if e.complexity.ActivityAction.ActivityID == nil {
+	case "ActivityAction.activity":
+		if e.complexity.ActivityAction.Activity == nil {
 			break
 		}
 
-		return e.complexity.ActivityAction.ActivityID(childComplexity), true
+		return e.complexity.ActivityAction.Activity(childComplexity), true
 
 	case "ActivityAction.id":
 		if e.complexity.ActivityAction.ID == nil {
@@ -174,12 +165,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ActivityAction.ID(childComplexity), true
 
-	case "ActivityActionCount.activityId":
-		if e.complexity.ActivityActionCount.ActivityID == nil {
+	case "ActivityActionCount.activity":
+		if e.complexity.ActivityActionCount.Activity == nil {
 			break
 		}
 
-		return e.complexity.ActivityActionCount.ActivityID(childComplexity), true
+		return e.complexity.ActivityActionCount.Activity(childComplexity), true
 
 	case "ActivityActionCount.count":
 		if e.complexity.ActivityActionCount.Count == nil {
@@ -345,13 +336,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.WishItem.Status(childComplexity), true
 
-	case "WishItem.userId":
-		if e.complexity.WishItem.UserID == nil {
-			break
-		}
-
-		return e.complexity.WishItem.UserID(childComplexity), true
-
 	}
 	return 0, false
 }
@@ -420,24 +404,22 @@ var sources = []*ast.Source{
   id: ID!
   description: String!
   positive: Boolean!
-  userId: String!
   fundAmt: Int!
 }
 
 type ActivityAction {
   id: ID!
   actionTimestamp: Int!
-  activityId: Int!
+  activity: Activity!
 }
 
 type ActivityActionCount {
-  activityId: Int!
+  activity: Activity!
   count: Int!
   day: String!
 }
 
 input NewWishItemInput {
-  userId: String!
   description: String!
   price: Int!
   source: String
@@ -446,7 +428,6 @@ input NewWishItemInput {
 }
 
 input UpdateWishItemInput {
-  userId: String!
   id: String!
   description: String
   price: Int
@@ -456,14 +437,12 @@ input UpdateWishItemInput {
 }
 
 input CreateActivityInput {
-  userId: String!
   description: String!
   fundAmt: Int!
   positive: Boolean
 }
 
 input PerformActivityInput {
-  userId: String!
   activityId: Int!
 }
 
@@ -504,7 +483,6 @@ enum Status {
 type WishItem {
   id: ID!
   description: String!
-  userId: String!
   price: Int!
   source: String
   priority: String!
@@ -796,40 +774,6 @@ func (ec *executionContext) _Activity_positive(ctx context.Context, field graphq
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Activity_userId(ctx context.Context, field graphql.CollectedField, obj *model.Activity) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Activity",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Activity_fundAmt(ctx context.Context, field graphql.CollectedField, obj *model.Activity) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -932,7 +876,7 @@ func (ec *executionContext) _ActivityAction_actionTimestamp(ctx context.Context,
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ActivityAction_activityId(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
+func (ec *executionContext) _ActivityAction_activity(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -949,7 +893,7 @@ func (ec *executionContext) _ActivityAction_activityId(ctx context.Context, fiel
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ActivityID, nil
+		return obj.Activity, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -961,12 +905,12 @@ func (ec *executionContext) _ActivityAction_activityId(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*model.Activity)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ActivityActionCount_activityId(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
+func (ec *executionContext) _ActivityActionCount_activity(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -983,7 +927,7 @@ func (ec *executionContext) _ActivityActionCount_activityId(ctx context.Context,
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ActivityID, nil
+		return obj.Activity, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -995,9 +939,9 @@ func (ec *executionContext) _ActivityActionCount_activityId(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*model.Activity)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ActivityActionCount_count(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
@@ -1558,40 +1502,6 @@ func (ec *executionContext) _WishItem_description(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WishItem_userId(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WishItem",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2802,12 +2712,6 @@ func (ec *executionContext) unmarshalInputCreateActivityInput(ctx context.Contex
 
 	for k, v := range asMap {
 		switch k {
-		case "userId":
-			var err error
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "description":
 			var err error
 			it.Description, err = ec.unmarshalNString2string(ctx, v)
@@ -2862,12 +2766,6 @@ func (ec *executionContext) unmarshalInputNewWishItemInput(ctx context.Context, 
 
 	for k, v := range asMap {
 		switch k {
-		case "userId":
-			var err error
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "description":
 			var err error
 			it.Description, err = ec.unmarshalNString2string(ctx, v)
@@ -2910,12 +2808,6 @@ func (ec *executionContext) unmarshalInputPerformActivityInput(ctx context.Conte
 
 	for k, v := range asMap {
 		switch k {
-		case "userId":
-			var err error
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "activityId":
 			var err error
 			it.ActivityID, err = ec.unmarshalNInt2int(ctx, v)
@@ -2934,12 +2826,6 @@ func (ec *executionContext) unmarshalInputUpdateWishItemInput(ctx context.Contex
 
 	for k, v := range asMap {
 		switch k {
-		case "userId":
-			var err error
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "id":
 			var err error
 			it.ID, err = ec.unmarshalNString2string(ctx, v)
@@ -3016,11 +2902,6 @@ func (ec *executionContext) _Activity(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "userId":
-			out.Values[i] = ec._Activity_userId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "fundAmt":
 			out.Values[i] = ec._Activity_fundAmt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3058,8 +2939,8 @@ func (ec *executionContext) _ActivityAction(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "activityId":
-			out.Values[i] = ec._ActivityAction_activityId(ctx, field, obj)
+		case "activity":
+			out.Values[i] = ec._ActivityAction_activity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3085,8 +2966,8 @@ func (ec *executionContext) _ActivityActionCount(ctx context.Context, sel ast.Se
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ActivityActionCount")
-		case "activityId":
-			out.Values[i] = ec._ActivityActionCount_activityId(ctx, field, obj)
+		case "activity":
+			out.Values[i] = ec._ActivityActionCount_activity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3275,11 +3156,6 @@ func (ec *executionContext) _WishItem(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "description":
 			out.Values[i] = ec._WishItem_description(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "userId":
-			out.Values[i] = ec._WishItem_userId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

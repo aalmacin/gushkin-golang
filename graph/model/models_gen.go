@@ -12,24 +12,22 @@ type Activity struct {
 	ID          string `json:"id"`
 	Description string `json:"description"`
 	Positive    bool   `json:"positive"`
-	UserID      string `json:"userId"`
 	FundAmt     int    `json:"fundAmt"`
 }
 
 type ActivityAction struct {
-	ID              string `json:"id"`
-	ActionTimestamp int    `json:"actionTimestamp"`
-	ActivityID      int    `json:"activityId"`
+	ID              string    `json:"id"`
+	ActionTimestamp int       `json:"actionTimestamp"`
+	Activity        *Activity `json:"activity"`
 }
 
 type ActivityActionCount struct {
-	ActivityID int    `json:"activityId"`
-	Count      int    `json:"count"`
-	Day        string `json:"day"`
+	Activity *Activity `json:"activity"`
+	Count    int       `json:"count"`
+	Day      string    `json:"day"`
 }
 
 type CreateActivityInput struct {
-	UserID      string `json:"userId"`
 	Description string `json:"description"`
 	FundAmt     int    `json:"fundAmt"`
 	Positive    *bool  `json:"positive"`
@@ -41,7 +39,6 @@ type GetWishItemsForUser struct {
 }
 
 type NewWishItemInput struct {
-	UserID      string   `json:"userId"`
 	Description string   `json:"description"`
 	Price       int      `json:"price"`
 	Source      *string  `json:"source"`
@@ -50,12 +47,10 @@ type NewWishItemInput struct {
 }
 
 type PerformActivityInput struct {
-	UserID     string `json:"userId"`
-	ActivityID int    `json:"activityId"`
+	ActivityID int `json:"activityId"`
 }
 
 type UpdateWishItemInput struct {
-	UserID      string    `json:"userId"`
 	ID          string    `json:"id"`
 	Description *string   `json:"description"`
 	Price       *int      `json:"price"`
@@ -67,7 +62,6 @@ type UpdateWishItemInput struct {
 type WishItem struct {
 	ID          string  `json:"id"`
 	Description string  `json:"description"`
-	UserID      string  `json:"userId"`
 	Price       int     `json:"price"`
 	Source      *string `json:"source"`
 	Priority    string  `json:"priority"`

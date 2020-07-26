@@ -6,6 +6,8 @@ services:
       - "8732:8080"
     links:
       - db
+    environment:
+      POSTGRES_URL: "postgres://admin:password@localhost:8733/gushkinlocal?sslmode=disable"
   db:
     image: postgres
     ports:

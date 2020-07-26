@@ -2,24 +2,22 @@ type Activity {
   id: ID!
   description: String!
   positive: Boolean!
-  userId: String!
   fundAmt: Int!
 }
 
 type ActivityAction {
   id: ID!
   actionTimestamp: Int!
-  activityId: Int!
+  activity: Activity!
 }
 
 type ActivityActionCount {
-  activityId: Int!
+  activity: Activity!
   count: Int!
   day: String!
 }
 
 input NewWishItemInput {
-  userId: String!
   description: String!
   price: Int!
   source: String
@@ -28,7 +26,6 @@ input NewWishItemInput {
 }
 
 input UpdateWishItemInput {
-  userId: String!
   id: String!
   description: String
   price: Int
@@ -38,14 +35,12 @@ input UpdateWishItemInput {
 }
 
 input CreateActivityInput {
-  userId: String!
   description: String!
   fundAmt: Int!
   positive: Boolean
 }
 
 input PerformActivityInput {
-  userId: String!
   activityId: Int!
 }
 
@@ -86,7 +81,6 @@ enum Status {
 type WishItem {
   id: ID!
   description: String!
-  userId: String!
   price: Int!
   source: String
   priority: String!
