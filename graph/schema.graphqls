@@ -18,38 +18,42 @@ type ActivityActionCount {
   day: String!
 }
 
+input NewWishItemInput {
+  userId: String!
+  description: String!
+  price: Int!
+  source: String
+  priority: Priority!
+  status: Status!
+}
+
+input UpdateWishItemInput {
+  userId: String!
+  id: String!
+  description: String
+  price: Int
+  source: String
+  priority: Priority
+  status: Status
+}
+
+input CreateActivityInput {
+  userId: String!
+  description: String!
+  fundAmt: Int!
+  positive: Boolean
+}
+
+input PerformActivityInput {
+  userId: String!
+  activityId: Int!
+}
+
 type Mutation {
-  createWishItem(
-    accessToken: String!
-    userId: String!
-    description: String!
-    price: Int!
-    source: String
-    priority: Priority!
-    status: Status!
-  ): Result
-  updateWishItem(
-    accessToken: String!
-    userId: String!
-    id: String!
-    description: String
-    price: Int
-    source: String
-    priority: Priority
-    status: Status
-  ): Result
-  createActivity(
-    accessToken: String!
-    userId: String!
-    description: String!
-    fundAmt: Int!
-    positive: Boolean
-  ): Result
-  performActivity(
-    accessToken: String!
-    userId: String!
-    activityId: Int!
-  ): Result
+  createWishItem(input: NewWishItemInput!): WishItem!
+  updateWishItem(input: UpdateWishItemInput!): WishItem!
+  createActivity(input: CreateActivityInput!): Activity!
+  performActivity(input: PerformActivityInput!): Activity!
 }
 
 enum Priority {
@@ -60,68 +64,17 @@ enum Priority {
   VERY_LOW
 }
 
+input GetWishItemsForUser {
+  userId: String!
+  filter: String
+}
+
 type Query {
-  getWishItemsForUser(
-    accessToken: String!
-    userId: String!
-    filter: String
-  ): ResultWishItemsForUser
-  getActivitiesForUser(
-    accessToken: String!
-    userId: String!
-  ): ResultActivitiesForUser
-  getTodaysActivities(
-    accessToken: String!
-    userId: String!
-  ): ResultTodaysActivities
-  getCurrentFunds(accessToken: String!, userId: String!): ResultCurrentFunds
-  getActivityActionCount(
-    accessToken: String!
-    userId: String!
-  ): ResultActivityActionCount
-}
-
-type Result {
-  success: Boolean!
-  error: String
-}
-
-type ResultActivitiesForUser {
-  success: Boolean!
-  error: String
-  data: [Activity]
-}
-
-type ResultActivityActionCount {
-  success: Boolean!
-  error: String
-  data: [ActivityActionCount]
-}
-
-type ResultCurrentFunds {
-  success: Boolean!
-  error: String
-  data: Int
-}
-
-type ResultTodaysActivities {
-  success: Boolean!
-  error: String
-  data: [ResultTodaysActivity]
-}
-
-type ResultTodaysActivity {
-  activityId: Int!
-  timestamp: Int!
-  description: String!
-  positive: Boolean!
-  fundAmt: Int!
-}
-
-type ResultWishItemsForUser {
-  success: Boolean!
-  error: String
-  data: [WishItem]
+  getWishItemsForUser(input: GetWishItemsForUser!): [WishItem]!
+  getActivitiesForUser(userId: String!): [Activity]!
+  getTodaysActivities(userId: String!): [Activity]!
+  getCurrentFunds(userId: String!): Int!
+  getActivityActionCount(userId: String!): [ActivityActionCount]!
 }
 
 enum Status {
