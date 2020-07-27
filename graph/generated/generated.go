@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -35,6 +36,8 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Action() ActionResolver
+	Activity() ActivityResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -43,6 +46,18 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Action struct {
+		ActionTimestamp func(childComplexity int) int
+		Activity        func(childComplexity int) int
+		ID              func(childComplexity int) int
+	}
+
+	ActionCount struct {
+		Activity func(childComplexity int) int
+		Count    func(childComplexity int) int
+		Day      func(childComplexity int) int
+	}
+
 	Activity struct {
 		Actions     func(childComplexity int) int
 		Description func(childComplexity int) int
@@ -51,34 +66,22 @@ type ComplexityRoot struct {
 		Positive    func(childComplexity int) int
 	}
 
-	ActivityAction struct {
-		ActionTimestamp func(childComplexity int) int
-		Activity        func(childComplexity int) int
-		ID              func(childComplexity int) int
-	}
-
-	ActivityActionCount struct {
-		Activity func(childComplexity int) int
-		Count    func(childComplexity int) int
-		Day      func(childComplexity int) int
-	}
-
 	Mutation struct {
 		CreateActivity  func(childComplexity int, input model.CreateActivityInput) int
-		CreateWishItem  func(childComplexity int, input model.NewWishItemInput) int
+		CreateWish      func(childComplexity int, input model.NewWishInput) int
 		PerformActivity func(childComplexity int, input model.PerformActivityInput) int
-		UpdateWishItem  func(childComplexity int, input model.UpdateWishItemInput) int
+		UpdateWish      func(childComplexity int, input model.UpdateWishInput) int
 	}
 
 	Query struct {
-		GetActivitiesForUser   func(childComplexity int, userID string) int
-		GetActivityActionCount func(childComplexity int, userID string) int
-		GetCurrentFunds        func(childComplexity int, userID string) int
-		GetTodaysActivities    func(childComplexity int, userID string) int
-		GetWishItemsForUser    func(childComplexity int, input model.GetWishItemsForUser) int
+		ActionCount      func(childComplexity int) int
+		Activities       func(childComplexity int) int
+		CurrentFunds     func(childComplexity int) int
+		TodaysActivities func(childComplexity int) int
+		Wishes           func(childComplexity int, input *model.GetWishInput) int
 	}
 
-	WishItem struct {
+	Wish struct {
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Price       func(childComplexity int) int
@@ -88,18 +91,25 @@ type ComplexityRoot struct {
 	}
 }
 
+type ActionResolver interface {
+	ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error)
+	Activity(ctx context.Context, obj *model.Action) (*model.Activity, error)
+}
+type ActivityResolver interface {
+	Actions(ctx context.Context, obj *model.Activity) ([]*model.Action, error)
+}
 type MutationResolver interface {
-	CreateWishItem(ctx context.Context, input model.NewWishItemInput) (*model.WishItem, error)
-	UpdateWishItem(ctx context.Context, input model.UpdateWishItemInput) (*model.WishItem, error)
+	CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error)
+	UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error)
 	CreateActivity(ctx context.Context, input model.CreateActivityInput) (*model.Activity, error)
 	PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Activity, error)
 }
 type QueryResolver interface {
-	GetWishItemsForUser(ctx context.Context, input model.GetWishItemsForUser) ([]*model.WishItem, error)
-	GetActivitiesForUser(ctx context.Context, userID string) ([]*model.Activity, error)
-	GetTodaysActivities(ctx context.Context, userID string) ([]*model.Activity, error)
-	GetCurrentFunds(ctx context.Context, userID string) (int, error)
-	GetActivityActionCount(ctx context.Context, userID string) ([]*model.ActivityActionCount, error)
+	Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error)
+	Activities(ctx context.Context) ([]*model.Activity, error)
+	TodaysActivities(ctx context.Context) ([]*model.Activity, error)
+	CurrentFunds(ctx context.Context) (int, error)
+	ActionCount(ctx context.Context) ([]*model.ActionCount, error)
 }
 
 type executableSchema struct {
@@ -116,6 +126,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Action.actionTimestamp":
+		if e.complexity.Action.ActionTimestamp == nil {
+			break
+		}
+
+		return e.complexity.Action.ActionTimestamp(childComplexity), true
+
+	case "Action.activity":
+		if e.complexity.Action.Activity == nil {
+			break
+		}
+
+		return e.complexity.Action.Activity(childComplexity), true
+
+	case "Action.id":
+		if e.complexity.Action.ID == nil {
+			break
+		}
+
+		return e.complexity.Action.ID(childComplexity), true
+
+	case "ActionCount.activity":
+		if e.complexity.ActionCount.Activity == nil {
+			break
+		}
+
+		return e.complexity.ActionCount.Activity(childComplexity), true
+
+	case "ActionCount.count":
+		if e.complexity.ActionCount.Count == nil {
+			break
+		}
+
+		return e.complexity.ActionCount.Count(childComplexity), true
+
+	case "ActionCount.day":
+		if e.complexity.ActionCount.Day == nil {
+			break
+		}
+
+		return e.complexity.ActionCount.Day(childComplexity), true
 
 	case "Activity.actions":
 		if e.complexity.Activity.Actions == nil {
@@ -152,48 +204,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Activity.Positive(childComplexity), true
 
-	case "ActivityAction.actionTimestamp":
-		if e.complexity.ActivityAction.ActionTimestamp == nil {
-			break
-		}
-
-		return e.complexity.ActivityAction.ActionTimestamp(childComplexity), true
-
-	case "ActivityAction.activity":
-		if e.complexity.ActivityAction.Activity == nil {
-			break
-		}
-
-		return e.complexity.ActivityAction.Activity(childComplexity), true
-
-	case "ActivityAction.id":
-		if e.complexity.ActivityAction.ID == nil {
-			break
-		}
-
-		return e.complexity.ActivityAction.ID(childComplexity), true
-
-	case "ActivityActionCount.activity":
-		if e.complexity.ActivityActionCount.Activity == nil {
-			break
-		}
-
-		return e.complexity.ActivityActionCount.Activity(childComplexity), true
-
-	case "ActivityActionCount.count":
-		if e.complexity.ActivityActionCount.Count == nil {
-			break
-		}
-
-		return e.complexity.ActivityActionCount.Count(childComplexity), true
-
-	case "ActivityActionCount.day":
-		if e.complexity.ActivityActionCount.Day == nil {
-			break
-		}
-
-		return e.complexity.ActivityActionCount.Day(childComplexity), true
-
 	case "Mutation.createActivity":
 		if e.complexity.Mutation.CreateActivity == nil {
 			break
@@ -206,17 +216,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateActivity(childComplexity, args["input"].(model.CreateActivityInput)), true
 
-	case "Mutation.createWishItem":
-		if e.complexity.Mutation.CreateWishItem == nil {
+	case "Mutation.createWish":
+		if e.complexity.Mutation.CreateWish == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createWishItem_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_createWish_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateWishItem(childComplexity, args["input"].(model.NewWishItemInput)), true
+		return e.complexity.Mutation.CreateWish(childComplexity, args["input"].(model.NewWishInput)), true
 
 	case "Mutation.performActivity":
 		if e.complexity.Mutation.PerformActivity == nil {
@@ -230,119 +240,99 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.PerformActivity(childComplexity, args["input"].(model.PerformActivityInput)), true
 
-	case "Mutation.updateWishItem":
-		if e.complexity.Mutation.UpdateWishItem == nil {
+	case "Mutation.updateWish":
+		if e.complexity.Mutation.UpdateWish == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_updateWishItem_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_updateWish_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateWishItem(childComplexity, args["input"].(model.UpdateWishItemInput)), true
+		return e.complexity.Mutation.UpdateWish(childComplexity, args["input"].(model.UpdateWishInput)), true
 
-	case "Query.getActivitiesForUser":
-		if e.complexity.Query.GetActivitiesForUser == nil {
+	case "Query.actionCount":
+		if e.complexity.Query.ActionCount == nil {
 			break
 		}
 
-		args, err := ec.field_Query_getActivitiesForUser_args(context.TODO(), rawArgs)
+		return e.complexity.Query.ActionCount(childComplexity), true
+
+	case "Query.activities":
+		if e.complexity.Query.Activities == nil {
+			break
+		}
+
+		return e.complexity.Query.Activities(childComplexity), true
+
+	case "Query.currentFunds":
+		if e.complexity.Query.CurrentFunds == nil {
+			break
+		}
+
+		return e.complexity.Query.CurrentFunds(childComplexity), true
+
+	case "Query.todaysActivities":
+		if e.complexity.Query.TodaysActivities == nil {
+			break
+		}
+
+		return e.complexity.Query.TodaysActivities(childComplexity), true
+
+	case "Query.wishes":
+		if e.complexity.Query.Wishes == nil {
+			break
+		}
+
+		args, err := ec.field_Query_wishes_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.GetActivitiesForUser(childComplexity, args["userId"].(string)), true
+		return e.complexity.Query.Wishes(childComplexity, args["input"].(*model.GetWishInput)), true
 
-	case "Query.getActivityActionCount":
-		if e.complexity.Query.GetActivityActionCount == nil {
+	case "Wish.description":
+		if e.complexity.Wish.Description == nil {
 			break
 		}
 
-		args, err := ec.field_Query_getActivityActionCount_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Wish.Description(childComplexity), true
 
-		return e.complexity.Query.GetActivityActionCount(childComplexity, args["userId"].(string)), true
-
-	case "Query.getCurrentFunds":
-		if e.complexity.Query.GetCurrentFunds == nil {
+	case "Wish.id":
+		if e.complexity.Wish.ID == nil {
 			break
 		}
 
-		args, err := ec.field_Query_getCurrentFunds_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Wish.ID(childComplexity), true
 
-		return e.complexity.Query.GetCurrentFunds(childComplexity, args["userId"].(string)), true
-
-	case "Query.getTodaysActivities":
-		if e.complexity.Query.GetTodaysActivities == nil {
+	case "Wish.price":
+		if e.complexity.Wish.Price == nil {
 			break
 		}
 
-		args, err := ec.field_Query_getTodaysActivities_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Wish.Price(childComplexity), true
 
-		return e.complexity.Query.GetTodaysActivities(childComplexity, args["userId"].(string)), true
-
-	case "Query.getWishItemsForUser":
-		if e.complexity.Query.GetWishItemsForUser == nil {
+	case "Wish.priority":
+		if e.complexity.Wish.Priority == nil {
 			break
 		}
 
-		args, err := ec.field_Query_getWishItemsForUser_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Wish.Priority(childComplexity), true
 
-		return e.complexity.Query.GetWishItemsForUser(childComplexity, args["input"].(model.GetWishItemsForUser)), true
-
-	case "WishItem.description":
-		if e.complexity.WishItem.Description == nil {
+	case "Wish.source":
+		if e.complexity.Wish.Source == nil {
 			break
 		}
 
-		return e.complexity.WishItem.Description(childComplexity), true
+		return e.complexity.Wish.Source(childComplexity), true
 
-	case "WishItem.id":
-		if e.complexity.WishItem.ID == nil {
+	case "Wish.status":
+		if e.complexity.Wish.Status == nil {
 			break
 		}
 
-		return e.complexity.WishItem.ID(childComplexity), true
-
-	case "WishItem.price":
-		if e.complexity.WishItem.Price == nil {
-			break
-		}
-
-		return e.complexity.WishItem.Price(childComplexity), true
-
-	case "WishItem.priority":
-		if e.complexity.WishItem.Priority == nil {
-			break
-		}
-
-		return e.complexity.WishItem.Priority(childComplexity), true
-
-	case "WishItem.source":
-		if e.complexity.WishItem.Source == nil {
-			break
-		}
-
-		return e.complexity.WishItem.Source(childComplexity), true
-
-	case "WishItem.status":
-		if e.complexity.WishItem.Status == nil {
-			break
-		}
-
-		return e.complexity.WishItem.Status(childComplexity), true
+		return e.complexity.Wish.Status(childComplexity), true
 
 	}
 	return 0, false
@@ -408,27 +398,39 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/schema.graphqls", Input: `type Activity {
+	&ast.Source{Name: "graph/schema.graphqls", Input: `directive @goModel(
+  model: String
+  models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+scalar Time
+
+type Activity {
   id: ID!
   description: String!
   positive: Boolean!
   fundAmt: Int!
-  actions: [ActivityAction]
+  actions: [Action]! @goField(forceResolver: true)
 }
 
-type ActivityAction {
+type Action {
   id: ID!
-  actionTimestamp: Int!
-  activity: Activity!
+  actionTimestamp: Time!
+  activity: Activity! @goField(forceResolver: true)
 }
 
-type ActivityActionCount {
+type ActionCount {
   activity: Activity!
   count: Int!
   day: String!
 }
 
-type WishItem {
+type Wish {
   id: ID!
   description: String!
   price: Int!
@@ -437,7 +439,7 @@ type WishItem {
   status: String!
 }
 
-input NewWishItemInput {
+input NewWishInput {
   description: String!
   price: Int!
   source: String
@@ -445,7 +447,7 @@ input NewWishItemInput {
   status: Status!
 }
 
-input UpdateWishItemInput {
+input UpdateWishInput {
   id: String!
   description: String
   price: Int
@@ -465,8 +467,8 @@ input PerformActivityInput {
 }
 
 type Mutation {
-  createWishItem(input: NewWishItemInput!): WishItem!
-  updateWishItem(input: UpdateWishItemInput!): WishItem!
+  createWish(input: NewWishInput!): Wish!
+  updateWish(input: UpdateWishInput!): Wish!
   createActivity(input: CreateActivityInput!): Activity!
   performActivity(input: PerformActivityInput!): Activity!
 }
@@ -479,17 +481,16 @@ enum Priority {
   VERY_LOW
 }
 
-input GetWishItemsForUser {
-  userId: String!
+input GetWishInput {
   filter: String
 }
 
 type Query {
-  getWishItemsForUser(input: GetWishItemsForUser!): [WishItem]!
-  getActivitiesForUser(userId: String!): [Activity]!
-  getTodaysActivities(userId: String!): [Activity]!
-  getCurrentFunds(userId: String!): Int!
-  getActivityActionCount(userId: String!): [ActivityActionCount]!
+  wishes(input: GetWishInput): [Wish]!
+  activities: [Activity]!
+  todaysActivities: [Activity]!
+  currentFunds: Int!
+  actionCount: [ActionCount]!
 }
 
 enum Status {
@@ -519,12 +520,12 @@ func (ec *executionContext) field_Mutation_createActivity_args(ctx context.Conte
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createWishItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_createWish_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.NewWishItemInput
+	var arg0 model.NewWishInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewWishItemInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewWishItemInput(ctx, tmp)
+		arg0, err = ec.unmarshalNNewWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewWishInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -547,12 +548,12 @@ func (ec *executionContext) field_Mutation_performActivity_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_updateWishItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_updateWish_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.UpdateWishItemInput
+	var arg0 model.UpdateWishInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNUpdateWishItemInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐUpdateWishItemInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐUpdateWishInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -575,68 +576,12 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_getActivitiesForUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_wishes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getActivityActionCount_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getCurrentFunds_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getTodaysActivities_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getWishItemsForUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.GetWishItemsForUser
+	var arg0 *model.GetWishInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNGetWishItemsForUser2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishItemsForUser(ctx, tmp)
+		arg0, err = ec.unmarshalOGetWishInput2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -680,6 +625,210 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Action_id(ctx context.Context, field graphql.CollectedField, obj *model.Action) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Action",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Action_actionTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.Action) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Action",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Action().ActionTimestamp(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Action_activity(ctx context.Context, field graphql.CollectedField, obj *model.Action) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Action",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Action().Activity(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Activity)
+	fc.Result = res
+	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ActionCount_activity(ctx context.Context, field graphql.CollectedField, obj *model.ActionCount) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ActionCount",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Activity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Activity)
+	fc.Result = res
+	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ActionCount_count(ctx context.Context, field graphql.CollectedField, obj *model.ActionCount) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ActionCount",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Count, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ActionCount_day(ctx context.Context, field graphql.CollectedField, obj *model.ActionCount) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ActionCount",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Day, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Activity_id(ctx context.Context, field graphql.CollectedField, obj *model.Activity) (ret graphql.Marshaler) {
 	defer func() {
@@ -828,44 +977,13 @@ func (ec *executionContext) _Activity_actions(ctx context.Context, field graphql
 		Object:   "Activity",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Actions, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.ActivityAction)
-	fc.Result = res
-	return ec.marshalOActivityAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ActivityAction_id(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityAction",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.Activity().Actions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -877,182 +995,12 @@ func (ec *executionContext) _ActivityAction_id(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.([]*model.Action)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ActivityAction_actionTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityAction",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ActionTimestamp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ActivityAction_activity(ctx context.Context, field graphql.CollectedField, obj *model.ActivityAction) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityAction",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Activity, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Activity)
-	fc.Result = res
-	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ActivityActionCount_activity(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityActionCount",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Activity, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Activity)
-	fc.Result = res
-	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ActivityActionCount_count(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityActionCount",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Count, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ActivityActionCount_day(ctx context.Context, field graphql.CollectedField, obj *model.ActivityActionCount) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ActivityActionCount",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Day, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createWishItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createWish(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1068,7 +1016,7 @@ func (ec *executionContext) _Mutation_createWishItem(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createWishItem_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_createWish_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1076,7 +1024,7 @@ func (ec *executionContext) _Mutation_createWishItem(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateWishItem(rctx, args["input"].(model.NewWishItemInput))
+		return ec.resolvers.Mutation().CreateWish(rctx, args["input"].(model.NewWishInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1088,12 +1036,12 @@ func (ec *executionContext) _Mutation_createWishItem(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.WishItem)
+	res := resTmp.(*model.Wish)
 	fc.Result = res
-	return ec.marshalNWishItem2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx, field.Selections, res)
+	return ec.marshalNWish2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_updateWishItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateWish(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1109,7 +1057,7 @@ func (ec *executionContext) _Mutation_updateWishItem(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateWishItem_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_updateWish_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1117,7 +1065,7 @@ func (ec *executionContext) _Mutation_updateWishItem(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateWishItem(rctx, args["input"].(model.UpdateWishItemInput))
+		return ec.resolvers.Mutation().UpdateWish(rctx, args["input"].(model.UpdateWishInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1129,9 +1077,9 @@ func (ec *executionContext) _Mutation_updateWishItem(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.WishItem)
+	res := resTmp.(*model.Wish)
 	fc.Result = res
-	return ec.marshalNWishItem2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx, field.Selections, res)
+	return ec.marshalNWish2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createActivity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1216,7 +1164,7 @@ func (ec *executionContext) _Mutation_performActivity(ctx context.Context, field
 	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_getWishItemsForUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_wishes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1232,7 +1180,7 @@ func (ec *executionContext) _Query_getWishItemsForUser(ctx context.Context, fiel
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getWishItemsForUser_args(ctx, rawArgs)
+	args, err := ec.field_Query_wishes_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1240,7 +1188,7 @@ func (ec *executionContext) _Query_getWishItemsForUser(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetWishItemsForUser(rctx, args["input"].(model.GetWishItemsForUser))
+		return ec.resolvers.Query().Wishes(rctx, args["input"].(*model.GetWishInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1252,12 +1200,12 @@ func (ec *executionContext) _Query_getWishItemsForUser(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.WishItem)
+	res := resTmp.([]*model.Wish)
 	fc.Result = res
-	return ec.marshalNWishItem2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx, field.Selections, res)
+	return ec.marshalNWish2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_getActivitiesForUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_activities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1272,57 +1220,9 @@ func (ec *executionContext) _Query_getActivitiesForUser(ctx context.Context, fie
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getActivitiesForUser_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetActivitiesForUser(rctx, args["userId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Activity)
-	fc.Result = res
-	return ec.marshalNActivity2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_getTodaysActivities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getTodaysActivities_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetTodaysActivities(rctx, args["userId"].(string))
+		return ec.resolvers.Query().Activities(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1339,7 +1239,7 @@ func (ec *executionContext) _Query_getTodaysActivities(ctx context.Context, fiel
 	return ec.marshalNActivity2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_getCurrentFunds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_todaysActivities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1354,16 +1254,43 @@ func (ec *executionContext) _Query_getCurrentFunds(ctx context.Context, field gr
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getCurrentFunds_args(ctx, rawArgs)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TodaysActivities(rctx)
+	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
-	fc.Args = args
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Activity)
+	fc.Result = res
+	return ec.marshalNActivity2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_currentFunds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetCurrentFunds(rctx, args["userId"].(string))
+		return ec.resolvers.Query().CurrentFunds(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1380,7 +1307,7 @@ func (ec *executionContext) _Query_getCurrentFunds(ctx context.Context, field gr
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_getActivityActionCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_actionCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1395,16 +1322,9 @@ func (ec *executionContext) _Query_getActivityActionCount(ctx context.Context, f
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getActivityActionCount_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetActivityActionCount(rctx, args["userId"].(string))
+		return ec.resolvers.Query().ActionCount(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1416,9 +1336,9 @@ func (ec *executionContext) _Query_getActivityActionCount(ctx context.Context, f
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ActivityActionCount)
+	res := resTmp.([]*model.ActionCount)
 	fc.Result = res
-	return ec.marshalNActivityActionCount2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx, field.Selections, res)
+	return ec.marshalNActionCount2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1490,7 +1410,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_id(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_id(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1498,7 +1418,7 @@ func (ec *executionContext) _WishItem_id(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1524,7 +1444,7 @@ func (ec *executionContext) _WishItem_id(ctx context.Context, field graphql.Coll
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_description(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_description(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1532,7 +1452,7 @@ func (ec *executionContext) _WishItem_description(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1558,7 +1478,7 @@ func (ec *executionContext) _WishItem_description(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_price(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_price(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1566,7 +1486,7 @@ func (ec *executionContext) _WishItem_price(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1592,7 +1512,7 @@ func (ec *executionContext) _WishItem_price(ctx context.Context, field graphql.C
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_source(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_source(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1600,7 +1520,7 @@ func (ec *executionContext) _WishItem_source(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1623,7 +1543,7 @@ func (ec *executionContext) _WishItem_source(ctx context.Context, field graphql.
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_priority(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_priority(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1631,7 +1551,7 @@ func (ec *executionContext) _WishItem_priority(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1657,7 +1577,7 @@ func (ec *executionContext) _WishItem_priority(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _WishItem_status(ctx context.Context, field graphql.CollectedField, obj *model.WishItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _Wish_status(ctx context.Context, field graphql.CollectedField, obj *model.Wish) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1665,7 +1585,7 @@ func (ec *executionContext) _WishItem_status(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "WishItem",
+		Object:   "Wish",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -2776,18 +2696,12 @@ func (ec *executionContext) unmarshalInputCreateActivityInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputGetWishItemsForUser(ctx context.Context, obj interface{}) (model.GetWishItemsForUser, error) {
-	var it model.GetWishItemsForUser
+func (ec *executionContext) unmarshalInputGetWishInput(ctx context.Context, obj interface{}) (model.GetWishInput, error) {
+	var it model.GetWishInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "userId":
-			var err error
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "filter":
 			var err error
 			it.Filter, err = ec.unmarshalOString2ᚖstring(ctx, v)
@@ -2800,8 +2714,8 @@ func (ec *executionContext) unmarshalInputGetWishItemsForUser(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewWishItemInput(ctx context.Context, obj interface{}) (model.NewWishItemInput, error) {
-	var it model.NewWishItemInput
+func (ec *executionContext) unmarshalInputNewWishInput(ctx context.Context, obj interface{}) (model.NewWishInput, error) {
+	var it model.NewWishInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -2860,8 +2774,8 @@ func (ec *executionContext) unmarshalInputPerformActivityInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateWishItemInput(ctx context.Context, obj interface{}) (model.UpdateWishItemInput, error) {
-	var it model.UpdateWishItemInput
+func (ec *executionContext) unmarshalInputUpdateWishInput(ctx context.Context, obj interface{}) (model.UpdateWishInput, error) {
+	var it model.UpdateWishInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -2916,6 +2830,98 @@ func (ec *executionContext) unmarshalInputUpdateWishItemInput(ctx context.Contex
 
 // region    **************************** object.gotpl ****************************
 
+var actionImplementors = []string{"Action"}
+
+func (ec *executionContext) _Action(ctx context.Context, sel ast.SelectionSet, obj *model.Action) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, actionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Action")
+		case "id":
+			out.Values[i] = ec._Action_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "actionTimestamp":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Action_actionTimestamp(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "activity":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Action_activity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var actionCountImplementors = []string{"ActionCount"}
+
+func (ec *executionContext) _ActionCount(ctx context.Context, sel ast.SelectionSet, obj *model.ActionCount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, actionCountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ActionCount")
+		case "activity":
+			out.Values[i] = ec._ActionCount_activity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "count":
+			out.Values[i] = ec._ActionCount_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "day":
+			out.Values[i] = ec._ActionCount_day(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var activityImplementors = []string{"Activity"}
 
 func (ec *executionContext) _Activity(ctx context.Context, sel ast.SelectionSet, obj *model.Activity) graphql.Marshaler {
@@ -2930,99 +2936,37 @@ func (ec *executionContext) _Activity(ctx context.Context, sel ast.SelectionSet,
 		case "id":
 			out.Values[i] = ec._Activity_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._Activity_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "positive":
 			out.Values[i] = ec._Activity_positive(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "fundAmt":
 			out.Values[i] = ec._Activity_fundAmt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "actions":
-			out.Values[i] = ec._Activity_actions(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var activityActionImplementors = []string{"ActivityAction"}
-
-func (ec *executionContext) _ActivityAction(ctx context.Context, sel ast.SelectionSet, obj *model.ActivityAction) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, activityActionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ActivityAction")
-		case "id":
-			out.Values[i] = ec._ActivityAction_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "actionTimestamp":
-			out.Values[i] = ec._ActivityAction_actionTimestamp(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "activity":
-			out.Values[i] = ec._ActivityAction_activity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var activityActionCountImplementors = []string{"ActivityActionCount"}
-
-func (ec *executionContext) _ActivityActionCount(ctx context.Context, sel ast.SelectionSet, obj *model.ActivityActionCount) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, activityActionCountImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ActivityActionCount")
-		case "activity":
-			out.Values[i] = ec._ActivityActionCount_activity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "count":
-			out.Values[i] = ec._ActivityActionCount_count(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "day":
-			out.Values[i] = ec._ActivityActionCount_day(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Activity_actions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3049,13 +2993,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createWishItem":
-			out.Values[i] = ec._Mutation_createWishItem(ctx, field)
+		case "createWish":
+			out.Values[i] = ec._Mutation_createWish(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "updateWishItem":
-			out.Values[i] = ec._Mutation_updateWishItem(ctx, field)
+		case "updateWish":
+			out.Values[i] = ec._Mutation_updateWish(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3095,7 +3039,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "getWishItemsForUser":
+		case "wishes":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3103,13 +3047,13 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getWishItemsForUser(ctx, field)
+				res = ec._Query_wishes(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
 				return res
 			})
-		case "getActivitiesForUser":
+		case "activities":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3117,13 +3061,13 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getActivitiesForUser(ctx, field)
+				res = ec._Query_activities(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
 				return res
 			})
-		case "getTodaysActivities":
+		case "todaysActivities":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3131,13 +3075,13 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getTodaysActivities(ctx, field)
+				res = ec._Query_todaysActivities(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
 				return res
 			})
-		case "getCurrentFunds":
+		case "currentFunds":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3145,13 +3089,13 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getCurrentFunds(ctx, field)
+				res = ec._Query_currentFunds(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
 				return res
 			})
-		case "getActivityActionCount":
+		case "actionCount":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3159,7 +3103,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getActivityActionCount(ctx, field)
+				res = ec._Query_actionCount(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3180,41 +3124,41 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var wishItemImplementors = []string{"WishItem"}
+var wishImplementors = []string{"Wish"}
 
-func (ec *executionContext) _WishItem(ctx context.Context, sel ast.SelectionSet, obj *model.WishItem) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, wishItemImplementors)
+func (ec *executionContext) _Wish(ctx context.Context, sel ast.SelectionSet, obj *model.Wish) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, wishImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("WishItem")
+			out.Values[i] = graphql.MarshalString("Wish")
 		case "id":
-			out.Values[i] = ec._WishItem_id(ctx, field, obj)
+			out.Values[i] = ec._Wish_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "description":
-			out.Values[i] = ec._WishItem_description(ctx, field, obj)
+			out.Values[i] = ec._Wish_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "price":
-			out.Values[i] = ec._WishItem_price(ctx, field, obj)
+			out.Values[i] = ec._Wish_price(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "source":
-			out.Values[i] = ec._WishItem_source(ctx, field, obj)
+			out.Values[i] = ec._Wish_source(ctx, field, obj)
 		case "priority":
-			out.Values[i] = ec._WishItem_priority(ctx, field, obj)
+			out.Values[i] = ec._Wish_priority(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "status":
-			out.Values[i] = ec._WishItem_status(ctx, field, obj)
+			out.Values[i] = ec._Wish_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3474,6 +3418,80 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v []*model.Action) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNActionCount2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx context.Context, sel ast.SelectionSet, v []*model.ActionCount) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOActionCount2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNActivity2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx context.Context, sel ast.SelectionSet, v model.Activity) graphql.Marshaler {
 	return ec._Activity(ctx, sel, &v)
 }
@@ -3525,43 +3543,6 @@ func (ec *executionContext) marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushki
 	return ec._Activity(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNActivityActionCount2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx context.Context, sel ast.SelectionSet, v []*model.ActivityActionCount) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOActivityActionCount2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -3578,10 +3559,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 
 func (ec *executionContext) unmarshalNCreateActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐCreateActivityInput(ctx context.Context, v interface{}) (model.CreateActivityInput, error) {
 	return ec.unmarshalInputCreateActivityInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalNGetWishItemsForUser2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishItemsForUser(ctx context.Context, v interface{}) (model.GetWishItemsForUser, error) {
-	return ec.unmarshalInputGetWishItemsForUser(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -3612,8 +3589,8 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewWishItemInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewWishItemInput(ctx context.Context, v interface{}) (model.NewWishItemInput, error) {
-	return ec.unmarshalInputNewWishItemInput(ctx, v)
+func (ec *executionContext) unmarshalNNewWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewWishInput(ctx context.Context, v interface{}) (model.NewWishInput, error) {
+	return ec.unmarshalInputNewWishInput(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNPerformActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐPerformActivityInput(ctx context.Context, v interface{}) (model.PerformActivityInput, error) {
@@ -3652,15 +3629,47 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNUpdateWishItemInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐUpdateWishItemInput(ctx context.Context, v interface{}) (model.UpdateWishItemInput, error) {
-	return ec.unmarshalInputUpdateWishItemInput(ctx, v)
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return graphql.UnmarshalTime(v)
 }
 
-func (ec *executionContext) marshalNWishItem2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx context.Context, sel ast.SelectionSet, v model.WishItem) graphql.Marshaler {
-	return ec._WishItem(ctx, sel, &v)
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
-func (ec *executionContext) marshalNWishItem2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx context.Context, sel ast.SelectionSet, v []*model.WishItem) graphql.Marshaler {
+func (ec *executionContext) unmarshalNTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec.marshalNTime2timeᚐTime(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalNUpdateWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐUpdateWishInput(ctx context.Context, v interface{}) (model.UpdateWishInput, error) {
+	return ec.unmarshalInputUpdateWishInput(ctx, v)
+}
+
+func (ec *executionContext) marshalNWish2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx context.Context, sel ast.SelectionSet, v model.Wish) graphql.Marshaler {
+	return ec._Wish(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWish2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx context.Context, sel ast.SelectionSet, v []*model.Wish) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3684,7 +3693,7 @@ func (ec *executionContext) marshalNWishItem2ᚕᚖgithubᚗcomᚋaalmacinᚋgus
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOWishItem2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx, sel, v[i])
+			ret[i] = ec.marshalOWish2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3697,14 +3706,14 @@ func (ec *executionContext) marshalNWishItem2ᚕᚖgithubᚗcomᚋaalmacinᚋgus
 	return ret
 }
 
-func (ec *executionContext) marshalNWishItem2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx context.Context, sel ast.SelectionSet, v *model.WishItem) graphql.Marshaler {
+func (ec *executionContext) marshalNWish2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx context.Context, sel ast.SelectionSet, v *model.Wish) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._WishItem(ctx, sel, v)
+	return ec._Wish(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3933,6 +3942,28 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOAction2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v model.Action) graphql.Marshaler {
+	return ec._Action(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v *model.Action) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Action(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOActionCount2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx context.Context, sel ast.SelectionSet, v model.ActionCount) graphql.Marshaler {
+	return ec._ActionCount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOActionCount2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx context.Context, sel ast.SelectionSet, v *model.ActionCount) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ActionCount(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOActivity2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx context.Context, sel ast.SelectionSet, v model.Activity) graphql.Marshaler {
 	return ec._Activity(ctx, sel, &v)
 }
@@ -3942,68 +3973,6 @@ func (ec *executionContext) marshalOActivity2ᚖgithubᚗcomᚋaalmacinᚋgushki
 		return graphql.Null
 	}
 	return ec._Activity(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOActivityAction2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v model.ActivityAction) graphql.Marshaler {
-	return ec._ActivityAction(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOActivityAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v []*model.ActivityAction) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOActivityAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalOActivityAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityAction(ctx context.Context, sel ast.SelectionSet, v *model.ActivityAction) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ActivityAction(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOActivityActionCount2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx context.Context, sel ast.SelectionSet, v model.ActivityActionCount) graphql.Marshaler {
-	return ec._ActivityActionCount(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOActivityActionCount2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivityActionCount(ctx context.Context, sel ast.SelectionSet, v *model.ActivityActionCount) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ActivityActionCount(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -4027,6 +3996,18 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOGetWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishInput(ctx context.Context, v interface{}) (model.GetWishInput, error) {
+	return ec.unmarshalInputGetWishInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOGetWishInput2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishInput(ctx context.Context, v interface{}) (*model.GetWishInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOGetWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -4108,6 +4089,38 @@ func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.S
 	return graphql.MarshalString(v)
 }
 
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -4123,15 +4136,15 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return ec.marshalOString2string(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOWishItem2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx context.Context, sel ast.SelectionSet, v model.WishItem) graphql.Marshaler {
-	return ec._WishItem(ctx, sel, &v)
+func (ec *executionContext) marshalOWish2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx context.Context, sel ast.SelectionSet, v model.Wish) graphql.Marshaler {
+	return ec._Wish(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOWishItem2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWishItem(ctx context.Context, sel ast.SelectionSet, v *model.WishItem) graphql.Marshaler {
+func (ec *executionContext) marshalOWish2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐWish(ctx context.Context, sel ast.SelectionSet, v *model.Wish) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._WishItem(ctx, sel, v)
+	return ec._Wish(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

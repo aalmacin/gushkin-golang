@@ -54,3 +54,12 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+  Action:
+    model:
+      - github.com/aalmacin/gushkin-golang/graph/model.Action
+  Activity:
+    model:
+      - github.com/aalmacin/gushkin-golang/graph/model.Activity
+  Wish:
+    model:
+      - github.com/aalmacin/gushkin-golang/graph/model.Wish

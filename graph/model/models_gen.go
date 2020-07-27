@@ -8,21 +8,7 @@ import (
 	"strconv"
 )
 
-type Activity struct {
-	ID          string            `json:"id"`
-	Description string            `json:"description"`
-	Positive    bool              `json:"positive"`
-	FundAmt     int               `json:"fundAmt"`
-	Actions     []*ActivityAction `json:"actions"`
-}
-
-type ActivityAction struct {
-	ID              string    `json:"id"`
-	ActionTimestamp int       `json:"actionTimestamp"`
-	Activity        *Activity `json:"activity"`
-}
-
-type ActivityActionCount struct {
+type ActionCount struct {
 	Activity *Activity `json:"activity"`
 	Count    int       `json:"count"`
 	Day      string    `json:"day"`
@@ -34,12 +20,11 @@ type CreateActivityInput struct {
 	Positive    *bool  `json:"positive"`
 }
 
-type GetWishItemsForUser struct {
-	UserID string  `json:"userId"`
+type GetWishInput struct {
 	Filter *string `json:"filter"`
 }
 
-type NewWishItemInput struct {
+type NewWishInput struct {
 	Description string   `json:"description"`
 	Price       int      `json:"price"`
 	Source      *string  `json:"source"`
@@ -51,22 +36,13 @@ type PerformActivityInput struct {
 	ActivityID int `json:"activityId"`
 }
 
-type UpdateWishItemInput struct {
+type UpdateWishInput struct {
 	ID          string    `json:"id"`
 	Description *string   `json:"description"`
 	Price       *int      `json:"price"`
 	Source      *string   `json:"source"`
 	Priority    *Priority `json:"priority"`
 	Status      *Status   `json:"status"`
-}
-
-type WishItem struct {
-	ID          string  `json:"id"`
-	Description string  `json:"description"`
-	Price       int     `json:"price"`
-	Source      *string `json:"source"`
-	Priority    string  `json:"priority"`
-	Status      string  `json:"status"`
 }
 
 type Priority string

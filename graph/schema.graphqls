@@ -1,24 +1,36 @@
+directive @goModel(
+  model: String
+  models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+scalar Time
+
 type Activity {
   id: ID!
   description: String!
   positive: Boolean!
   fundAmt: Int!
-  actions: [ActivityAction]
+  actions: [Action]! @goField(forceResolver: true)
 }
 
-type ActivityAction {
+type Action {
   id: ID!
-  actionTimestamp: Int!
-  activity: Activity!
+  actionTimestamp: Time!
+  activity: Activity! @goField(forceResolver: true)
 }
 
-type ActivityActionCount {
+type ActionCount {
   activity: Activity!
   count: Int!
   day: String!
 }
 
-type WishItem {
+type Wish {
   id: ID!
   description: String!
   price: Int!
@@ -27,7 +39,7 @@ type WishItem {
   status: String!
 }
 
-input NewWishItemInput {
+input NewWishInput {
   description: String!
   price: Int!
   source: String
@@ -35,7 +47,7 @@ input NewWishItemInput {
   status: Status!
 }
 
-input UpdateWishItemInput {
+input UpdateWishInput {
   id: String!
   description: String
   price: Int
@@ -55,8 +67,8 @@ input PerformActivityInput {
 }
 
 type Mutation {
-  createWishItem(input: NewWishItemInput!): WishItem!
-  updateWishItem(input: UpdateWishItemInput!): WishItem!
+  createWish(input: NewWishInput!): Wish!
+  updateWish(input: UpdateWishInput!): Wish!
   createActivity(input: CreateActivityInput!): Activity!
   performActivity(input: PerformActivityInput!): Activity!
 }
@@ -69,17 +81,16 @@ enum Priority {
   VERY_LOW
 }
 
-input GetWishItemsForUser {
-  userId: String!
+input GetWishInput {
   filter: String
 }
 
 type Query {
-  getWishItemsForUser(input: GetWishItemsForUser!): [WishItem]!
-  getActivitiesForUser(userId: String!): [Activity]!
-  getTodaysActivities(userId: String!): [Activity]!
-  getCurrentFunds(userId: String!): Int!
-  getActivityActionCount(userId: String!): [ActivityActionCount]!
+  wishes(input: GetWishInput): [Wish]!
+  activities: [Activity]!
+  todaysActivities: [Activity]!
+  currentFunds: Int!
+  actionCount: [ActionCount]!
 }
 
 enum Status {

@@ -1,5 +1,5 @@
 INSERT INTO
-  public.activity (description, positive, fund_amt)
+  public.activities (description, positive, fund_amt)
 VALUES
   ('Took longer to wake up', TRUE, 10000000),
   ('Test 1', TRUE, 2000000),
@@ -13,7 +13,7 @@ VALUES
   ('Missed Activity with Kids', false, 10000000);
 
 INSERT INTO
-  public.activity (description, positive, fund_amt)
+  public.activities (description, positive, fund_amt)
 VALUES
   ('Did not workout', false, 10000000),
   ('Did not practice music', false, 10000000),
@@ -31,7 +31,7 @@ VALUES
   ('pangarap', TRUE, 22000000);
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-05 00:55:43.455'),
   (2, '2020-03-05 01:00:03.099'),
@@ -45,7 +45,7 @@ VALUES
   (10, '2020-03-06 22:34:13.643');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-09 23:01:11.533'),
   (2, '2020-03-11 01:12:41.804'),
@@ -59,7 +59,7 @@ VALUES
   (10, '2020-03-14 19:05:30.740');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-14 19:05:38.579'),
   (2, '2020-03-14 19:12:50.561'),
@@ -73,7 +73,7 @@ VALUES
   (10, '2020-03-16 02:36:35.152');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-16 22:31:58.610'),
   (2, '2020-03-16 22:39:09.458'),
@@ -87,7 +87,7 @@ VALUES
   (10, '2020-03-18 21:32:39.478');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-18 21:32:40.924'),
   (2, '2020-03-18 21:32:43.439'),
@@ -101,7 +101,7 @@ VALUES
   (10, '2020-03-19 13:59:40.982');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-19 13:59:43.640'),
   (2, '2020-03-19 17:55:14.530'),
@@ -115,7 +115,7 @@ VALUES
   (10, '2020-03-20 22:27:46.289');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-20 22:27:49.667'),
   (2, '2020-03-20 22:27:51.966'),
@@ -129,7 +129,7 @@ VALUES
   (10, '2020-03-20 22:28:15.749');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (1, '2020-03-20 22:59:56.098'),
   (2, '2020-03-20 23:02:02.479'),
@@ -143,7 +143,7 @@ VALUES
   (10, '2020-03-21 23:30:46.507');
 
 INSERT INTO
-  public.activityaction (activity_id, action_timestamp)
+  actions (activity_id, action_timestamp)
 VALUES
   (4, '2020-03-21 23:31:44.226'),
   (2, '2020-03-21 23:31:46.467'),
@@ -153,7 +153,7 @@ VALUES
   (9, '2020-03-21 23:32:03.586');
 
 INSERT INTO
-  public.wishitem (description, price, "source", priority, STATUS)
+  public.wishes (description, price, "source", priority, STATUS)
 VALUES
   ('Another new', 33, 'dfsdfsf', 'MEDIUM', 'bought'),
   ('Raizza', 323, 'Here man', 'LOW', 'disabled'),
@@ -209,7 +209,7 @@ VALUES
   );
 
 INSERT INTO
-  public.wishitem (description, price, "source", priority, STATUS)
+  public.wishes (description, price, "source", priority, STATUS)
 VALUES
   ('New', 22, 'Here', 'VERY_LOW', 'bought'),
   ('book3', 34, 'NULL', 'VERY_HIGH', 'bought'),

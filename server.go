@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,9 +10,22 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/aalmacin/gushkin-golang/graph"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
+	"github.com/aalmacin/gushkin-golang/repos"
+	"github.com/go-pg/pg"
 )
 
 const defaultPort = "8080"
+
+func getDBOptions() *pg.Options {
+	opts, err := pg.ParseURL(os.Getenv("POSTGRES_URL"))
+
+	if err != nil {
+		fmt.Errorf("Error getting options from url. %v", err)
+		return nil
+	}
+
+	return opts
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -19,7 +33,21 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	db := pg.Connect(getDBOptions())
+	defer db.Close()
+
+	activityRepo := repos.ActivityRepo{
+		DB: db,
+	}
+
+	actionRepo := repos.ActionRepo{
+		DB: db,
+	}
+
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
+		ActivityRepo: &activityRepo,
+		ActionRepo:   &actionRepo,
+	}}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)

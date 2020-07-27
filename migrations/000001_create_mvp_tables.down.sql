@@ -1,13 +1,9 @@
-DROP TABLE public.activityaction;
+DROP TABLE public.actions;
 
+DROP TABLE public.activities;
 
-DROP TABLE public.activity;
+DROP TABLE public.wishes;
 
-
-DROP TABLE public.WishItem;
-
-
-DROP TYPE status;
-
+DROP TYPE STATUS;
 
 DROP TYPE priority;
