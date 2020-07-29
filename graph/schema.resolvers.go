@@ -13,7 +13,7 @@ import (
 )
 
 func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &obj.ActionTimestamp, nil
 }
 
 func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*model.Activity, error) {

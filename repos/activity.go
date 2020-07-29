@@ -24,12 +24,12 @@ func (r *ActivityRepo) Activities() ([]*model.Activity, error) {
 }
 
 func (r *ActivityRepo) ActivityById(id string) (*model.Activity, error) {
-	var activity *model.Activity
+	var activity model.Activity
 	err := r.DB.Model(&activity).Where("id = ?", id).First()
 	if err != nil {
 		fmt.Println("repos.Activity ActivityById() error: ", activity, err)
 		return nil, errors.New("Something went wrong")
 	}
 
-	return activity, nil
+	return &activity, nil
 }
