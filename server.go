@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/aalmacin/gushkin-golang/graph"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
+	hooks "github.com/aalmacin/gushkin-golang/pg-hooks"
 	"github.com/aalmacin/gushkin-golang/repos"
 	"github.com/go-pg/pg"
 )
@@ -35,6 +36,7 @@ func main() {
 
 	db := pg.Connect(getDBOptions())
 	defer db.Close()
+	db.AddQueryHook(hooks.DBLogger{})
 
 	activityRepo := repos.ActivityRepo{
 		DB: db,
