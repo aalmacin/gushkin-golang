@@ -18,3 +18,16 @@ func (r *WishRepo) Wishes() ([]*model.Wish, error) {
 
 	return wishes, nil
 }
+
+func (r *WishRepo) Create(input model.NewWishInput) (*model.Wish, error) {
+	wish := &model.Wish{
+		Description: input.Description,
+		Price:       input.Price,
+		Priority:    input.Priority.String(),
+		Source:      input.Source,
+		Status:      input.Status.String(),
+	}
+	_, err := r.DB.Model(wish).Returning("*").Insert()
+
+	return wish, err
+}

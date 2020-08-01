@@ -27,7 +27,7 @@ func (r *activityResolver) Actions(ctx context.Context, obj *model.Activity) ([]
 }
 
 func (r *mutationResolver) CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.WishRepo.Create(input)
 }
 
 func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error) {
@@ -90,7 +90,4 @@ type queryResolver struct{ *Resolver }
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
 func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error) {
 	return &obj.ActionTimestamp, nil
-}
-func (r *queryResolver) TodaysActivities(ctx context.Context) ([]*model.Activity, error) {
-	panic(fmt.Errorf("not implemented"))
 }
