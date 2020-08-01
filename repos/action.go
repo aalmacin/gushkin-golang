@@ -31,7 +31,7 @@ func (r *ActionRepo) ActionsWithOptions(options *model.GetActionInput) ([]*model
 	model := r.DB.Model(&activityActions)
 
 	if *options.Today {
-		model.Where(fmt.Sprintf("action_timestamp = current_date"))
+		model.Where(fmt.Sprintf("action_timestamp > current_date"))
 	}
 
 	err := model.Select()
@@ -54,4 +54,13 @@ func (r *ActionRepo) Actions() ([]*model.Action, error) {
 	}
 
 	return activityActions, err
+}
+
+func (r *ActionRepo) Create(input model.PerformActivityInput) (*model.Action, error) {
+	action := &model.Action{
+		ActivityID: fmt.Sprintf("%v", input.ActivityID),
+	}
+	_, err := r.DB.Model(action).Returning("*").Insert()
+
+	return action, err
 }

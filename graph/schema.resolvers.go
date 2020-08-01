@@ -38,8 +38,8 @@ func (r *mutationResolver) CreateActivity(ctx context.Context, input model.NewAc
 	return r.ActivityRepo.Create(input)
 }
 
-func (r *mutationResolver) PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Activity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Action, error) {
+	return r.ActionRepo.Create(input)
 }
 
 func (r *queryResolver) Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error) {

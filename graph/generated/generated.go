@@ -101,7 +101,7 @@ type MutationResolver interface {
 	CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error)
 	UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error)
 	CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error)
-	PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Activity, error)
+	PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Action, error)
 }
 type QueryResolver interface {
 	Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error)
@@ -474,7 +474,7 @@ type Mutation {
   createWish(input: NewWishInput!): Wish!
   updateWish(input: UpdateWishInput!): Wish!
   createActivity(input: NewActivityInput!): Activity!
-  performActivity(input: PerformActivityInput!): Activity!
+  performActivity(input: PerformActivityInput!): Action!
 }
 
 enum Priority {
@@ -1181,9 +1181,9 @@ func (ec *executionContext) _Mutation_performActivity(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Activity)
+	res := resTmp.(*model.Action)
 	fc.Result = res
-	return ec.marshalNActivity2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+	return ec.marshalNAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_wishes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3456,6 +3456,10 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAction2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v model.Action) graphql.Marshaler {
+	return ec._Action(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v []*model.Action) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -3491,6 +3495,16 @@ func (ec *executionContext) marshalNAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushk
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNAction2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx context.Context, sel ast.SelectionSet, v *model.Action) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Action(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNActionCount2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActionCount(ctx context.Context, sel ast.SelectionSet, v []*model.ActionCount) graphql.Marshaler {
