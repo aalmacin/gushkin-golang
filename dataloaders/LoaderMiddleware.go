@@ -24,7 +24,23 @@ func LoaderMiddleware(db *pg.DB, next http.Handler) http.Handler {
 					fmt.Println("Error in ActivityLoaderMiddleware", err)
 				}
 
-				return activities, nil
+				// Create buffer
+				activitiesBuff := make(map[string]*model.Activity)
+
+				// Populate buffer
+				for _, activity := range activities {
+					activitiesBuff[activity.ID] = activity
+				}
+
+				// Make sorted result slice
+				results := make([]*model.Activity, len(ids))
+
+				// Map buffer to result
+				for i, id := range ids {
+					results[i] = activitiesBuff[id]
+				}
+
+				return results, nil
 			},
 			maxBatch: 100,
 			wait:     1 * time.Millisecond,
@@ -34,5 +50,8 @@ func LoaderMiddleware(db *pg.DB, next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
 
+func getActivityLoader(ctx context.Context) ActivityLoader {
+	return ctx.Value(activityLoaderKey).(ActivityLoader)
 }

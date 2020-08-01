@@ -5,12 +5,14 @@ package dataloaders
 import (
 	"sync"
 	"time"
+
+	"github.com/aalmacin/gushkin-golang/graph/model"
 )
 
 // ActivityLoaderConfig captures the config to create a new ActivityLoader
 type ActivityLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []string) ([]*Activity, []error)
+	Fetch func(keys []string) ([]*model.Activity, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -31,7 +33,7 @@ func NewActivityLoader(config ActivityLoaderConfig) *ActivityLoader {
 // ActivityLoader batches and caches requests
 type ActivityLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []string) ([]*Activity, []error)
+	fetch func(keys []string) ([]*model.Activity, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -42,7 +44,7 @@ type ActivityLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[string]*Activity
+	cache map[string]*model.Activity
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -54,25 +56,25 @@ type ActivityLoader struct {
 
 type activityLoaderBatch struct {
 	keys    []string
-	data    []*Activity
+	data    []*model.Activity
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
 // Load a Activity by key, batching and caching will be applied automatically
-func (l *ActivityLoader) Load(key string) (*Activity, error) {
+func (l *ActivityLoader) Load(key string) (*model.Activity, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a Activity.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ActivityLoader) LoadThunk(key string) func() (*Activity, error) {
+func (l *ActivityLoader) LoadThunk(key string) func() (*model.Activity, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (*Activity, error) {
+		return func() (*model.Activity, error) {
 			return it, nil
 		}
 	}
@@ -83,10 +85,10 @@ func (l *ActivityLoader) LoadThunk(key string) func() (*Activity, error) {
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (*Activity, error) {
+	return func() (*model.Activity, error) {
 		<-batch.done
 
-		var data *Activity
+		var data *model.Activity
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -111,14 +113,14 @@ func (l *ActivityLoader) LoadThunk(key string) func() (*Activity, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *ActivityLoader) LoadAll(keys []string) ([]*Activity, []error) {
-	results := make([]func() (*Activity, error), len(keys))
+func (l *ActivityLoader) LoadAll(keys []string) ([]*model.Activity, []error) {
+	results := make([]func() (*model.Activity, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	activitys := make([]*Activity, len(keys))
+	activitys := make([]*model.Activity, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
 		activitys[i], errors[i] = thunk()
@@ -129,13 +131,13 @@ func (l *ActivityLoader) LoadAll(keys []string) ([]*Activity, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a Activitys.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ActivityLoader) LoadAllThunk(keys []string) func() ([]*Activity, []error) {
-	results := make([]func() (*Activity, error), len(keys))
+func (l *ActivityLoader) LoadAllThunk(keys []string) func() ([]*model.Activity, []error) {
+	results := make([]func() (*model.Activity, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]*Activity, []error) {
-		activitys := make([]*Activity, len(keys))
+	return func() ([]*model.Activity, []error) {
+		activitys := make([]*model.Activity, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
 			activitys[i], errors[i] = thunk()
@@ -147,7 +149,7 @@ func (l *ActivityLoader) LoadAllThunk(keys []string) func() ([]*Activity, []erro
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *ActivityLoader) Prime(key string, value *Activity) bool {
+func (l *ActivityLoader) Prime(key string, value *model.Activity) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -167,9 +169,9 @@ func (l *ActivityLoader) Clear(key string) {
 	l.mu.Unlock()
 }
 
-func (l *ActivityLoader) unsafeSet(key string, value *Activity) {
+func (l *ActivityLoader) unsafeSet(key string, value *model.Activity) {
 	if l.cache == nil {
-		l.cache = map[string]*Activity{}
+		l.cache = map[string]*model.Activity{}
 	}
 	l.cache[key] = value
 }

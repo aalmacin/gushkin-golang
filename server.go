@@ -8,6 +8,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/aalmacin/gushkin-golang/dataloaders"
 	"github.com/aalmacin/gushkin-golang/graph"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
 	hooks "github.com/aalmacin/gushkin-golang/pg-hooks"
@@ -51,8 +52,10 @@ func main() {
 		ActionRepo:   &actionRepo,
 	}}))
 
+	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
+
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/query", srvWithLoader)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
