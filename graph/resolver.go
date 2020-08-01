@@ -10,4 +10,5 @@ import "github.com/aalmacin/gushkin-golang/repos"
 type Resolver struct {
 	ActivityRepo *repos.ActivityRepo
 	ActionRepo   *repos.ActionRepo
+	WishRepo     *repos.WishRepo
 }

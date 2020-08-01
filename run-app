@@ -1,0 +1,2 @@
+source .env-vars
+go run server.go

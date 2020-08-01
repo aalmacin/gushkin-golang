@@ -47,7 +47,7 @@ func (r *mutationResolver) PerformActivity(ctx context.Context, input model.Perf
 }
 
 func (r *queryResolver) Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.WishRepo.Wishes()
 }
 
 func (r *queryResolver) Activities(ctx context.Context) ([]*model.Activity, error) {

@@ -47,9 +47,14 @@ func main() {
 		DB: db,
 	}
 
+	wishRepo := repos.WishRepo{
+		DB: db,
+	}
+
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
 		ActivityRepo: &activityRepo,
 		ActionRepo:   &actionRepo,
+		WishRepo:     &wishRepo,
 	}}))
 
 	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
