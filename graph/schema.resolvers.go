@@ -13,10 +13,6 @@ import (
 	"github.com/aalmacin/gushkin-golang/graph/model"
 )
 
-func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error) {
-	return &obj.ActionTimestamp, nil
-}
-
 func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*model.Activity, error) {
 	activityLoader := dataloaders.GetActivityLoader(ctx)
 	activity, err := activityLoader.Load(obj.ActivityID)
@@ -54,8 +50,11 @@ func (r *queryResolver) Activities(ctx context.Context) ([]*model.Activity, erro
 	return r.ActivityRepo.Activities()
 }
 
-func (r *queryResolver) TodaysActivities(ctx context.Context) ([]*model.Activity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput) ([]*model.Action, error) {
+	if input != nil {
+		return r.ActionRepo.ActionsWithOptions(input)
+	}
+	return r.ActionRepo.Actions()
 }
 
 func (r *queryResolver) CurrentFunds(ctx context.Context) (int, error) {
@@ -82,3 +81,16 @@ type actionResolver struct{ *Resolver }
 type activityResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error) {
+	return &obj.ActionTimestamp, nil
+}
+func (r *queryResolver) TodaysActivities(ctx context.Context) ([]*model.Activity, error) {
+	panic(fmt.Errorf("not implemented"))
+}

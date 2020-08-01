@@ -20,6 +20,10 @@ type CreateActivityInput struct {
 	Positive    *bool  `json:"positive"`
 }
 
+type GetActionInput struct {
+	Today *bool `json:"today"`
+}
+
 type GetWishInput struct {
 	Filter *string `json:"filter"`
 }

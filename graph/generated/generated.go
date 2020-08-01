@@ -74,11 +74,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		ActionCount      func(childComplexity int) int
-		Activities       func(childComplexity int) int
-		CurrentFunds     func(childComplexity int) int
-		TodaysActivities func(childComplexity int) int
-		Wishes           func(childComplexity int, input *model.GetWishInput) int
+		ActionCount  func(childComplexity int) int
+		Actions      func(childComplexity int, input *model.GetActionInput) int
+		Activities   func(childComplexity int) int
+		CurrentFunds func(childComplexity int) int
+		Wishes       func(childComplexity int, input *model.GetWishInput) int
 	}
 
 	Wish struct {
@@ -92,7 +92,6 @@ type ComplexityRoot struct {
 }
 
 type ActionResolver interface {
-	ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error)
 	Activity(ctx context.Context, obj *model.Action) (*model.Activity, error)
 }
 type ActivityResolver interface {
@@ -107,7 +106,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error)
 	Activities(ctx context.Context) ([]*model.Activity, error)
-	TodaysActivities(ctx context.Context) ([]*model.Activity, error)
+	Actions(ctx context.Context, input *model.GetActionInput) ([]*model.Action, error)
 	CurrentFunds(ctx context.Context) (int, error)
 	ActionCount(ctx context.Context) ([]*model.ActionCount, error)
 }
@@ -259,6 +258,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ActionCount(childComplexity), true
 
+	case "Query.actions":
+		if e.complexity.Query.Actions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_actions_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Actions(childComplexity, args["input"].(*model.GetActionInput)), true
+
 	case "Query.activities":
 		if e.complexity.Query.Activities == nil {
 			break
@@ -272,13 +283,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CurrentFunds(childComplexity), true
-
-	case "Query.todaysActivities":
-		if e.complexity.Query.TodaysActivities == nil {
-			break
-		}
-
-		return e.complexity.Query.TodaysActivities(childComplexity), true
 
 	case "Query.wishes":
 		if e.complexity.Query.Wishes == nil {
@@ -485,10 +489,14 @@ input GetWishInput {
   filter: String
 }
 
+input GetActionInput {
+  today: Boolean
+}
+
 type Query {
   wishes(input: GetWishInput): [Wish]!
   activities: [Activity]!
-  todaysActivities: [Activity]!
+  actions(input: GetActionInput): [Action]!
   currentFunds: Int!
   actionCount: [ActionCount]!
 }
@@ -573,6 +581,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_actions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.GetActionInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalOGetActionInput2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetActionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -671,13 +693,13 @@ func (ec *executionContext) _Action_actionTimestamp(ctx context.Context, field g
 		Object:   "Action",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Action().ActionTimestamp(rctx, obj)
+		return obj.ActionTimestamp, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -689,9 +711,9 @@ func (ec *executionContext) _Action_actionTimestamp(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Action_activity(ctx context.Context, field graphql.CollectedField, obj *model.Action) (ret graphql.Marshaler) {
@@ -1239,7 +1261,7 @@ func (ec *executionContext) _Query_activities(ctx context.Context, field graphql
 	return ec.marshalNActivity2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_todaysActivities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_actions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1254,9 +1276,16 @@ func (ec *executionContext) _Query_todaysActivities(ctx context.Context, field g
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_actions_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TodaysActivities(rctx)
+		return ec.resolvers.Query().Actions(rctx, args["input"].(*model.GetActionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1268,9 +1297,9 @@ func (ec *executionContext) _Query_todaysActivities(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Activity)
+	res := resTmp.([]*model.Action)
 	fc.Result = res
-	return ec.marshalNActivity2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+	return ec.marshalNAction2ᚕᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐAction(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_currentFunds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2696,6 +2725,24 @@ func (ec *executionContext) unmarshalInputCreateActivityInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputGetActionInput(ctx context.Context, obj interface{}) (model.GetActionInput, error) {
+	var it model.GetActionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "today":
+			var err error
+			it.Today, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputGetWishInput(ctx context.Context, obj interface{}) (model.GetWishInput, error) {
 	var it model.GetWishInput
 	var asMap = obj.(map[string]interface{})
@@ -2847,19 +2894,10 @@ func (ec *executionContext) _Action(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "actionTimestamp":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Action_actionTimestamp(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Action_actionTimestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "activity":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3067,7 +3105,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "todaysActivities":
+		case "actions":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3075,7 +3113,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_todaysActivities(ctx, field)
+				res = ec._Query_actions(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3643,24 +3681,6 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) unmarshalNTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec.marshalNTime2timeᚐTime(ctx, sel, *v)
-}
-
 func (ec *executionContext) unmarshalNUpdateWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐUpdateWishInput(ctx context.Context, v interface{}) (model.UpdateWishInput, error) {
 	return ec.unmarshalInputUpdateWishInput(ctx, v)
 }
@@ -3996,6 +4016,18 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOGetActionInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetActionInput(ctx context.Context, v interface{}) (model.GetActionInput, error) {
+	return ec.unmarshalInputGetActionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOGetActionInput2ᚖgithubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetActionInput(ctx context.Context, v interface{}) (*model.GetActionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOGetActionInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetActionInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) unmarshalOGetWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐGetWishInput(ctx context.Context, v interface{}) (model.GetWishInput, error) {

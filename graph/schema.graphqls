@@ -85,10 +85,14 @@ input GetWishInput {
   filter: String
 }
 
+input GetActionInput {
+  today: Boolean
+}
+
 type Query {
   wishes(input: GetWishInput): [Wish]!
   activities: [Activity]!
-  todaysActivities: [Activity]!
+  actions(input: GetActionInput): [Action]!
   currentFunds: Int!
   actionCount: [ActionCount]!
 }
