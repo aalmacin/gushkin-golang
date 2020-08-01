@@ -14,18 +14,18 @@ type ActionCount struct {
 	Day      string    `json:"day"`
 }
 
-type CreateActivityInput struct {
-	Description string `json:"description"`
-	FundAmt     int    `json:"fundAmt"`
-	Positive    *bool  `json:"positive"`
-}
-
 type GetActionInput struct {
 	Today *bool `json:"today"`
 }
 
 type GetWishInput struct {
 	Filter *string `json:"filter"`
+}
+
+type NewActivityInput struct {
+	Description string `json:"description"`
+	FundAmt     int    `json:"fundAmt"`
+	Positive    *bool  `json:"positive"`
 }
 
 type NewWishInput struct {

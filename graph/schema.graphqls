@@ -56,7 +56,7 @@ input UpdateWishInput {
   status: Status
 }
 
-input CreateActivityInput {
+input NewActivityInput {
   description: String!
   fundAmt: Int!
   positive: Boolean
@@ -69,7 +69,7 @@ input PerformActivityInput {
 type Mutation {
   createWish(input: NewWishInput!): Wish!
   updateWish(input: UpdateWishInput!): Wish!
-  createActivity(input: CreateActivityInput!): Activity!
+  createActivity(input: NewActivityInput!): Activity!
   performActivity(input: PerformActivityInput!): Activity!
 }
 

@@ -34,8 +34,8 @@ func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWis
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateActivity(ctx context.Context, input model.CreateActivityInput) (*model.Activity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error) {
+	return r.ActivityRepo.Create(input)
 }
 
 func (r *mutationResolver) PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Activity, error) {

@@ -67,7 +67,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateActivity  func(childComplexity int, input model.CreateActivityInput) int
+		CreateActivity  func(childComplexity int, input model.NewActivityInput) int
 		CreateWish      func(childComplexity int, input model.NewWishInput) int
 		PerformActivity func(childComplexity int, input model.PerformActivityInput) int
 		UpdateWish      func(childComplexity int, input model.UpdateWishInput) int
@@ -100,7 +100,7 @@ type ActivityResolver interface {
 type MutationResolver interface {
 	CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error)
 	UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error)
-	CreateActivity(ctx context.Context, input model.CreateActivityInput) (*model.Activity, error)
+	CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error)
 	PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Activity, error)
 }
 type QueryResolver interface {
@@ -213,7 +213,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateActivity(childComplexity, args["input"].(model.CreateActivityInput)), true
+		return e.complexity.Mutation.CreateActivity(childComplexity, args["input"].(model.NewActivityInput)), true
 
 	case "Mutation.createWish":
 		if e.complexity.Mutation.CreateWish == nil {
@@ -460,7 +460,7 @@ input UpdateWishInput {
   status: Status
 }
 
-input CreateActivityInput {
+input NewActivityInput {
   description: String!
   fundAmt: Int!
   positive: Boolean
@@ -473,7 +473,7 @@ input PerformActivityInput {
 type Mutation {
   createWish(input: NewWishInput!): Wish!
   updateWish(input: UpdateWishInput!): Wish!
-  createActivity(input: CreateActivityInput!): Activity!
+  createActivity(input: NewActivityInput!): Activity!
   performActivity(input: PerformActivityInput!): Activity!
 }
 
@@ -517,9 +517,9 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createActivity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.CreateActivityInput
+	var arg0 model.NewActivityInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNCreateActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐCreateActivityInput(ctx, tmp)
+		arg0, err = ec.unmarshalNNewActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewActivityInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1128,7 +1128,7 @@ func (ec *executionContext) _Mutation_createActivity(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateActivity(rctx, args["input"].(model.CreateActivityInput))
+		return ec.resolvers.Mutation().CreateActivity(rctx, args["input"].(model.NewActivityInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2695,36 +2695,6 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputCreateActivityInput(ctx context.Context, obj interface{}) (model.CreateActivityInput, error) {
-	var it model.CreateActivityInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "description":
-			var err error
-			it.Description, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "fundAmt":
-			var err error
-			it.FundAmt, err = ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "positive":
-			var err error
-			it.Positive, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputGetActionInput(ctx context.Context, obj interface{}) (model.GetActionInput, error) {
 	var it model.GetActionInput
 	var asMap = obj.(map[string]interface{})
@@ -2752,6 +2722,36 @@ func (ec *executionContext) unmarshalInputGetWishInput(ctx context.Context, obj 
 		case "filter":
 			var err error
 			it.Filter, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewActivityInput(ctx context.Context, obj interface{}) (model.NewActivityInput, error) {
+	var it model.NewActivityInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "description":
+			var err error
+			it.Description, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "fundAmt":
+			var err error
+			it.FundAmt, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "positive":
+			var err error
+			it.Positive, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3595,10 +3595,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCreateActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐCreateActivityInput(ctx context.Context, v interface{}) (model.CreateActivityInput, error) {
-	return ec.unmarshalInputCreateActivityInput(ctx, v)
-}
-
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -3625,6 +3621,10 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNNewActivityInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewActivityInput(ctx context.Context, v interface{}) (model.NewActivityInput, error) {
+	return ec.unmarshalInputNewActivityInput(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNNewWishInput2githubᚗcomᚋaalmacinᚋgushkinᚑgolangᚋgraphᚋmodelᚐNewWishInput(ctx context.Context, v interface{}) (model.NewWishInput, error) {
