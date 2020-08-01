@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aalmacin/gushkin-golang/dataloaders"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
 	"github.com/aalmacin/gushkin-golang/graph/model"
 )
@@ -17,7 +18,12 @@ func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action)
 }
 
 func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*model.Activity, error) {
-	return r.ActivityRepo.ActivityById(obj.ActivityID)
+	activityLoader := dataloaders.GetActivityLoader(ctx)
+	activity, err := activityLoader.Load(obj.ActivityID)
+	if err != nil {
+		fmt.Println("Error in action resolver: Activity", err)
+	}
+	return activity, err
 }
 
 func (r *activityResolver) Actions(ctx context.Context, obj *model.Activity) ([]*model.Action, error) {

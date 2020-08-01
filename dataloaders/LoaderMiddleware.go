@@ -18,7 +18,7 @@ func LoaderMiddleware(db *pg.DB, next http.Handler) http.Handler {
 			fetch: func(ids []string) ([]*model.Activity, []error) {
 				var activities []*model.Activity
 
-				err := db.Model(&activities).Where("id in ?", ids).Select()
+				err := db.Model(&activities).Where("id in (?)", pg.In(ids)).Select()
 
 				if err != nil {
 					fmt.Println("Error in ActivityLoaderMiddleware", err)
@@ -52,6 +52,6 @@ func LoaderMiddleware(db *pg.DB, next http.Handler) http.Handler {
 	})
 }
 
-func getActivityLoader(ctx context.Context) ActivityLoader {
-	return ctx.Value(activityLoaderKey).(ActivityLoader)
+func GetActivityLoader(ctx context.Context) *ActivityLoader {
+	return ctx.Value(activityLoaderKey).(*ActivityLoader)
 }
