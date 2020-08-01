@@ -31,3 +31,16 @@ func (r *WishRepo) Create(input model.NewWishInput) (*model.Wish, error) {
 
 	return wish, err
 }
+
+func (r *WishRepo) Update(input model.UpdateWishInput) (*model.Wish, error) {
+	wish := &model.Wish{
+		Description: *input.Description,
+		Price:       *input.Price,
+		Priority:    input.Priority.String(),
+		Source:      input.Source,
+		Status:      input.Status.String(),
+	}
+	_, err := r.DB.Model(wish).Where("id = ?", input.ID).Returning("*").Update()
+
+	return wish, err
+}
