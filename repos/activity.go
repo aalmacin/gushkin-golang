@@ -12,9 +12,9 @@ type ActivityRepo struct {
 	DB *pg.DB
 }
 
-func (r *ActivityRepo) Activities() ([]*model.Activity, error) {
+func (r *ActivityRepo) Activities(userID string) ([]*model.Activity, error) {
 	var activities []*model.Activity
-	err := r.DB.Model(&activities).Order("id").Select()
+	err := r.DB.Model(&activities).Where("user_id = ?", userID).Order("id").Select()
 	if err != nil {
 		fmt.Println("repos.Activity Activities() error: ", activities, err)
 		return nil, errors.New("Something went wrong")
@@ -23,9 +23,9 @@ func (r *ActivityRepo) Activities() ([]*model.Activity, error) {
 	return activities, nil
 }
 
-func (r *ActivityRepo) ActivityById(id string) (*model.Activity, error) {
+func (r *ActivityRepo) ActivityById(id string, userID string) (*model.Activity, error) {
 	var activity model.Activity
-	err := r.DB.Model(&activity).Where("id = ?", id).First()
+	err := r.DB.Model(&activity).Where("id = ? AND user_id = ?", id, userID).First()
 	if err != nil {
 		fmt.Println("repos.Activity ActivityById() error: ", activity, err)
 		return nil, errors.New("Something went wrong")
@@ -34,12 +34,12 @@ func (r *ActivityRepo) ActivityById(id string) (*model.Activity, error) {
 	return &activity, nil
 }
 
-func (r *ActivityRepo) Create(input model.NewActivityInput, currUser string) (*model.Activity, error) {
+func (r *ActivityRepo) Create(input model.NewActivityInput, userID string) (*model.Activity, error) {
 	activity := &model.Activity{
 		Description: input.Description,
 		FundAmt:     input.FundAmt,
 		Positive:    *input.Positive,
-		UserID:      currUser,
+		UserID:      userID,
 	}
 	_, err := r.DB.Model(activity).Returning("*").Insert()
 

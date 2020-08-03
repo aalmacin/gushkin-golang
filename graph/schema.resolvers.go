@@ -31,7 +31,11 @@ func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*mode
 }
 
 func (r *activityResolver) Actions(ctx context.Context, obj *model.Activity) ([]*model.Action, error) {
-	return r.ActionRepo.ActionsByActivityId(obj.ID)
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return r.ActionRepo.ActionsByActivityId(obj.ID, r.UserID)
 }
 
 func (r *mutationResolver) CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error) {
@@ -39,7 +43,7 @@ func (r *mutationResolver) CreateWish(ctx context.Context, input model.NewWishIn
 	if err != nil {
 		return nil, err
 	}
-	return r.WishRepo.Create(input)
+	return r.WishRepo.Create(input, r.UserID)
 }
 
 func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error) {
@@ -47,7 +51,7 @@ func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWis
 	if err != nil {
 		return nil, err
 	}
-	return r.WishRepo.Update(input)
+	return r.WishRepo.Update(input, r.UserID)
 }
 
 func (r *mutationResolver) CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error) {
@@ -64,7 +68,13 @@ func (r *mutationResolver) PerformActivity(ctx context.Context, input model.Perf
 	if err != nil {
 		return nil, err
 	}
-	return r.ActionRepo.Create(input)
+
+	_, err = r.ActivityRepo.ActivityById(fmt.Sprintf("%v", input.ActivityID), r.UserID)
+
+	if err != nil {
+		return nil, fmt.Errorf("Invalid Activity")
+	}
+	return r.ActionRepo.Create(input, r.UserID)
 }
 
 func (r *queryResolver) Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error) {
@@ -72,7 +82,7 @@ func (r *queryResolver) Wishes(ctx context.Context, input *model.GetWishInput) (
 	if err != nil {
 		return nil, err
 	}
-	return r.WishRepo.Wishes()
+	return r.WishRepo.Wishes(r.UserID)
 }
 
 func (r *queryResolver) Activities(ctx context.Context) ([]*model.Activity, error) {
@@ -80,7 +90,7 @@ func (r *queryResolver) Activities(ctx context.Context) ([]*model.Activity, erro
 	if err != nil {
 		return nil, err
 	}
-	return r.ActivityRepo.Activities()
+	return r.ActivityRepo.Activities(r.UserID)
 }
 
 func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput) ([]*model.Action, error) {
@@ -89,9 +99,9 @@ func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput
 		return nil, err
 	}
 	if input != nil {
-		return r.ActionRepo.ActionsWithOptions(input)
+		return r.ActionRepo.ActionsWithOptions(input, r.UserID)
 	}
-	return r.ActionRepo.Actions()
+	return r.ActionRepo.Actions(r.UserID)
 }
 
 func (r *queryResolver) CurrentFunds(ctx context.Context) (int, error) {
