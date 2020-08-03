@@ -1,1 +1,2 @@
+source .env-vars
 psql $POSTGRES_URL -f seeds/seeds.sql

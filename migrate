@@ -1,1 +1,2 @@
+source .env-vars
 migrate -path migrations -database $POSTGRES_URL $1

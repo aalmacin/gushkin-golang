@@ -6,16 +6,21 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aalmacin/gushkin-golang/graph"
 	"github.com/dgrijalva/jwt-go"
 )
 
 const userIdKey = "userIdKey"
 
 // CurrentUserMiddleware Middleware to get current user from jwt token
-func CurrentUserMiddleware(next http.Handler) http.Handler {
+func CurrentUserMiddleware(resolver *graph.Resolver, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
 		tokenString := authHeaderParts[1]
+
+		if tokenString == "" {
+			panic("Authentication token missing")
+		}
 
 		token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 			cert, err := getPemCert(token)
@@ -34,6 +39,7 @@ func CurrentUserMiddleware(next http.Handler) http.Handler {
 		req := r
 		if token != nil {
 			userID := token.Claims.(jwt.MapClaims)["sub"]
+			resolver.UserID = userID.(string)
 
 			ctx := context.WithValue(r.Context(), userIdKey, userID)
 			req = r.WithContext(ctx)

@@ -30,17 +30,22 @@ func JwtMiddleware() *jwtmiddleware.JWTMiddleware {
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			// Check audience
 			aud := os.Getenv("GUSHKIN_AUDIENCE")
-			checkAud := token.Claims.(jwt.MapClaims).VerifyAudience(aud, false)
+			claims := token.Claims.(jwt.MapClaims)
+			checkAud := claims.VerifyAudience(aud, false)
 			if !checkAud {
 				return token, errors.New("invalid audience")
 			}
 
 			// Check issuer
 			iss := os.Getenv("GUSHKIN_ISSUER")
-			checkIss := token.Claims.(jwt.MapClaims).VerifyIssuer(iss, false)
+			checkIss := claims.VerifyIssuer(iss, false)
 			if !checkIss {
 				fmt.Println("Issuer issue")
 				return token, errors.New("invalid issuer")
+			}
+
+			if claims.Valid() != nil {
+				panic("Invalid Claims")
 			}
 
 			cert, err := getPemCert(token)

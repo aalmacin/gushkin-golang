@@ -7,4 +7,5 @@ type Wish struct {
 	Source      *string `json:"source"`
 	Priority    string  `json:"priority"`
 	Status      string  `json:"status"`
+	UserID      string
 }

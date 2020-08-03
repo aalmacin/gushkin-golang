@@ -11,4 +11,5 @@ type Resolver struct {
 	ActivityRepo *repos.ActivityRepo
 	ActionRepo   *repos.ActionRepo
 	WishRepo     *repos.WishRepo
+	UserID       string
 }

@@ -52,14 +52,16 @@ func main() {
 		DB: db,
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
+	resolver := &graph.Resolver{
 		ActivityRepo: &activityRepo,
 		ActionRepo:   &actionRepo,
 		WishRepo:     &wishRepo,
-	}}))
+		UserID:       "",
+	}
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
 	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
-	srvWithCurrentUser := auth.CurrentUserMiddleware(srvWithLoader)
+	srvWithCurrentUser := auth.CurrentUserMiddleware(resolver, srvWithLoader)
 	srvWithAuth := auth.JwtMiddleware().Handler(srvWithCurrentUser)
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))

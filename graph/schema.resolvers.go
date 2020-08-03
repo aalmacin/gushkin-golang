@@ -5,10 +5,10 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/aalmacin/gushkin-golang/auth"
 	"github.com/aalmacin/gushkin-golang/dataloaders"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
 	"github.com/aalmacin/gushkin-golang/graph/model"
@@ -20,9 +20,6 @@ func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*mode
 	if err != nil {
 		fmt.Println("Error in action resolver: Activity", err)
 	}
-
-	currUser := auth.GetCurrentUser(ctx)
-	fmt.Println("Get Current User", currUser)
 	return activity, err
 }
 
@@ -39,7 +36,12 @@ func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWis
 }
 
 func (r *mutationResolver) CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error) {
-	return r.ActivityRepo.Create(input)
+	if r.UserID == "" {
+		fmt.Println("UserID not found")
+		return nil, errors.New("Something went wrong")
+	}
+
+	return r.ActivityRepo.Create(input, r.UserID)
 }
 
 func (r *mutationResolver) PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Action, error) {

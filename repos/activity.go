@@ -34,11 +34,12 @@ func (r *ActivityRepo) ActivityById(id string) (*model.Activity, error) {
 	return &activity, nil
 }
 
-func (r *ActivityRepo) Create(input model.NewActivityInput) (*model.Activity, error) {
+func (r *ActivityRepo) Create(input model.NewActivityInput, currUser string) (*model.Activity, error) {
 	activity := &model.Activity{
 		Description: input.Description,
 		FundAmt:     input.FundAmt,
 		Positive:    *input.Positive,
+		UserID:      currUser,
 	}
 	_, err := r.DB.Model(activity).Returning("*").Insert()
 
