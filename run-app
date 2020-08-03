@@ -1,2 +1,3 @@
 source .env-vars
+source .env-auth
 go run server.go

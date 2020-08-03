@@ -5,7 +5,9 @@ go 1.23
 require (
 	github.com/99designs/gqlgen v0.11.3
 	github.com/agnivade/levenshtein v1.1.0 // indirect
+	github.com/auth0/go-jwt-middleware v0.0.0-20200507191422-d30d7b9ece63
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/graph-gophers/dataloader v5.0.0+incompatible // indirect
