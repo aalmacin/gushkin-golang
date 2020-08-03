@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aalmacin/gushkin-golang/auth"
 	"github.com/aalmacin/gushkin-golang/dataloaders"
 	"github.com/aalmacin/gushkin-golang/graph/generated"
 	"github.com/aalmacin/gushkin-golang/graph/model"
@@ -19,6 +20,9 @@ func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*mode
 	if err != nil {
 		fmt.Println("Error in action resolver: Activity", err)
 	}
+
+	currUser := auth.GetCurrentUser(ctx)
+	fmt.Println("Get Current User", currUser)
 	return activity, err
 }
 

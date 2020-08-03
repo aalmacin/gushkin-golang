@@ -59,7 +59,8 @@ func main() {
 	}}))
 
 	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
-	srvWithAuth := auth.JwtMiddleware().Handler(srvWithLoader)
+	srvWithCurrentUser := auth.CurrentUserMiddleware(srvWithLoader)
+	srvWithAuth := auth.JwtMiddleware().Handler(srvWithCurrentUser)
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srvWithAuth)
