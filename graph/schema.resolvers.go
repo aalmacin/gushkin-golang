@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +12,14 @@ import (
 	"github.com/aalmacin/gushkin-golang/graph/generated"
 	"github.com/aalmacin/gushkin-golang/graph/model"
 )
+
+func checkUserID(userID string) error {
+	if userID == "" {
+		fmt.Println("UserID not found")
+		return fmt.Errorf("Something went wrong")
+	}
+	return nil
+}
 
 func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*model.Activity, error) {
 	activityLoader := dataloaders.GetActivityLoader(ctx)
@@ -28,35 +35,59 @@ func (r *activityResolver) Actions(ctx context.Context, obj *model.Activity) ([]
 }
 
 func (r *mutationResolver) CreateWish(ctx context.Context, input model.NewWishInput) (*model.Wish, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	return r.WishRepo.Create(input)
 }
 
 func (r *mutationResolver) UpdateWish(ctx context.Context, input model.UpdateWishInput) (*model.Wish, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	return r.WishRepo.Update(input)
 }
 
 func (r *mutationResolver) CreateActivity(ctx context.Context, input model.NewActivityInput) (*model.Activity, error) {
-	if r.UserID == "" {
-		fmt.Println("UserID not found")
-		return nil, errors.New("Something went wrong")
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
 	}
 
 	return r.ActivityRepo.Create(input, r.UserID)
 }
 
 func (r *mutationResolver) PerformActivity(ctx context.Context, input model.PerformActivityInput) (*model.Action, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	return r.ActionRepo.Create(input)
 }
 
 func (r *queryResolver) Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	return r.WishRepo.Wishes()
 }
 
 func (r *queryResolver) Activities(ctx context.Context) ([]*model.Activity, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	return r.ActivityRepo.Activities()
 }
 
 func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput) ([]*model.Action, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	if input != nil {
 		return r.ActionRepo.ActionsWithOptions(input)
 	}
@@ -64,10 +95,18 @@ func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput
 }
 
 func (r *queryResolver) CurrentFunds(ctx context.Context) (int, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return 0, err
+	}
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) ActionCount(ctx context.Context) ([]*model.ActionCount, error) {
+	err := checkUserID(r.UserID)
+	if err != nil {
+		return nil, err
+	}
 	panic(fmt.Errorf("not implemented"))
 }
 

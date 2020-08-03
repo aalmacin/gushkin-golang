@@ -16,6 +16,11 @@ const userIdKey = "userIdKey"
 func CurrentUserMiddleware(resolver *graph.Resolver, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+
+		if len(authHeaderParts) < 2 {
+			panic("Authentication token missing")
+		}
+
 		tokenString := authHeaderParts[1]
 
 		if tokenString == "" {

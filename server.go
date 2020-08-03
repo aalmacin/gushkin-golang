@@ -61,11 +61,11 @@ func main() {
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
 	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
-	srvWithCurrentUser := auth.CurrentUserMiddleware(resolver, srvWithLoader)
-	srvWithAuth := auth.JwtMiddleware().Handler(srvWithCurrentUser)
+	srvWithAuth := auth.JwtMiddleware().Handler(srvWithLoader)
+	srvWithCurrentUser := auth.CurrentUserMiddleware(resolver, srvWithAuth)
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srvWithAuth)
+	http.Handle("/query", srvWithCurrentUser)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
