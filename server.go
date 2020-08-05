@@ -15,6 +15,7 @@ import (
 	hooks "github.com/aalmacin/gushkin-golang/pg-hooks"
 	"github.com/aalmacin/gushkin-golang/repos"
 	"github.com/go-pg/pg"
+	"github.com/rs/cors"
 )
 
 const defaultPort = "8080"
@@ -58,14 +59,23 @@ func main() {
 		WishRepo:     &wishRepo,
 		UserID:       "",
 	}
+
+	c := cors.New(cors.Options{
+		AllowedHeaders:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowCredentials: true,
+	})
+
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
 	srvWithLoader := dataloaders.LoaderMiddleware(db, srv)
 	srvWithAuth := auth.JwtMiddleware().Handler(srvWithLoader)
 	srvWithCurrentUser := auth.CurrentUserMiddleware(resolver, srvWithAuth)
+	srvWithCors := c.Handler(srvWithCurrentUser)
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srvWithCurrentUser)
+	http.Handle("/", c.Handler(playground.Handler("GraphQL playground", "/query")))
+	http.Handle("/query", srvWithCors)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

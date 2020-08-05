@@ -1,5 +1,5 @@
 source .env-vars
-rm gushkin
+rm gushkin || true
 ./build-for-ubuntu
 docker-compose down
 docker-compose up --force-recreate -d
