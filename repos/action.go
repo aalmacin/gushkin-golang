@@ -33,7 +33,7 @@ func (r *ActionRepo) ActionsWithOptions(options *model.GetActionInput, userID st
 	model.Where("user_id = ?", userID)
 
 	if *options.Today {
-		model.Where(fmt.Sprintf("action_timestamp > current_date"))
+		model.Where(fmt.Sprintf("action_timestamp at time zone 'America/Toronto' > current_date at time zone 'America/Toronto'"))
 	}
 
 	err := model.Select()

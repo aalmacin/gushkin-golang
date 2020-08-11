@@ -13,14 +13,6 @@ import (
 	"github.com/aalmacin/gushkin-golang/graph/model"
 )
 
-func checkUserID(userID string) error {
-	if userID == "" {
-		fmt.Println("UserID not found")
-		return fmt.Errorf("Something went wrong")
-	}
-	return nil
-}
-
 func (r *actionResolver) Activity(ctx context.Context, obj *model.Action) (*model.Activity, error) {
 	activityLoader := dataloaders.GetActivityLoader(ctx)
 	activity, err := activityLoader.Load(obj.ActivityID)
@@ -143,6 +135,13 @@ type queryResolver struct{ *Resolver }
 //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func checkUserID(userID string) error {
+	if userID == "" {
+		fmt.Println("UserID not found")
+		return fmt.Errorf("Something went wrong")
+	}
+	return nil
+}
 func (r *actionResolver) ActionTimestamp(ctx context.Context, obj *model.Action) (*time.Time, error) {
 	return &obj.ActionTimestamp, nil
 }

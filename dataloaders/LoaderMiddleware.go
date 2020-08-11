@@ -44,6 +44,7 @@ func LoaderMiddleware(db *pg.DB, next http.Handler) http.Handler {
 			},
 			maxBatch: 100,
 			wait:     1 * time.Millisecond,
+			
 		}
 
 		ctx := context.WithValue(r.Context(), activityLoaderKey, activityLoader)
