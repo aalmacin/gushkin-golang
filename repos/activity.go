@@ -35,10 +35,14 @@ func (r *ActivityRepo) ActivityById(id string, userID string) (*model.Activity, 
 }
 
 func (r *ActivityRepo) Create(input model.NewActivityInput, userID string) (*model.Activity, error) {
+	positive := *input.Positive
+	if positive != true {
+		positive = false
+	}
 	activity := &model.Activity{
 		Description: input.Description,
 		FundAmt:     input.FundAmt,
-		Positive:    *input.Positive,
+		Positive:    positive,
 		UserID:      userID,
 	}
 	_, err := r.DB.Model(activity).Returning("*").Insert()

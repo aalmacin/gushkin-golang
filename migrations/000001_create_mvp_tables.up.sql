@@ -16,7 +16,7 @@ CREATE TABLE public.activities (
         id SERIAL PRIMARY KEY,
         user_id text NOT NULL,
         description varchar NOT NULL,
-        positive boolean NOT NULL,
+        positive boolean,
         fund_amt int NOT NULL
 );
 
