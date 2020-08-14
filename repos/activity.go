@@ -49,3 +49,15 @@ func (r *ActivityRepo) Create(input model.NewActivityInput, userID string) (*mod
 
 	return activity, err
 }
+
+func (r *ActivityRepo) GetCurrentFunds(userID string) (int, error) {
+	type sum struct {
+		funds int
+	}
+	var currentFunds sum
+
+	q := fmt.Sprintf("SELECT SUM(case aa.positive when true then aa.fund_amt else aa.fund_amt * -1 end) AS funds FROM actions AS a inner join activities AS aa ON aa.id = a.activity_id WHERE a.user_id = '%s'", userID)
+
+	_, err := r.DB.Model(&currentFunds).Exec(q)
+	return currentFunds.funds, err
+}
