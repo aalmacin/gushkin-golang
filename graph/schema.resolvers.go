@@ -96,12 +96,13 @@ func (r *queryResolver) Actions(ctx context.Context, input *model.GetActionInput
 	return r.ActionRepo.Actions(r.UserID)
 }
 
-func (r *queryResolver) CurrentFunds(ctx context.Context) (int, error) {
+func (r *queryResolver) CurrentFunds(ctx context.Context, userID string) (int, error) {
 	err := checkUserID(r.UserID)
 	if err != nil {
 		return 0, err
 	}
-	panic(fmt.Errorf("not implemented"))
+
+	return r.ActivityRepo.GetCurrentFunds(r.UserID)
 }
 
 func (r *queryResolver) ActionCount(ctx context.Context) ([]*model.ActionCount, error) {
