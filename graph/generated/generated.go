@@ -77,7 +77,7 @@ type ComplexityRoot struct {
 		ActionCount  func(childComplexity int) int
 		Actions      func(childComplexity int, input *model.GetActionInput) int
 		Activities   func(childComplexity int) int
-		CurrentFunds func(childComplexity int, userID string) int
+		CurrentFunds func(childComplexity int) int
 		Wishes       func(childComplexity int, input *model.GetWishInput) int
 	}
 
@@ -107,7 +107,7 @@ type QueryResolver interface {
 	Wishes(ctx context.Context, input *model.GetWishInput) ([]*model.Wish, error)
 	Activities(ctx context.Context) ([]*model.Activity, error)
 	Actions(ctx context.Context, input *model.GetActionInput) ([]*model.Action, error)
-	CurrentFunds(ctx context.Context, userID string) (int, error)
+	CurrentFunds(ctx context.Context) (int, error)
 	ActionCount(ctx context.Context) ([]*model.ActionCount, error)
 }
 
@@ -282,12 +282,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_currentFunds_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.CurrentFunds(childComplexity, args["userId"].(string)), true
+		return e.complexity.Query.CurrentFunds(childComplexity), true
 
 	case "Query.wishes":
 		if e.complexity.Query.Wishes == nil {
@@ -502,7 +497,7 @@ type Query {
   wishes(input: GetWishInput): [Wish]!
   activities: [Activity]!
   actions(input: GetActionInput): [Action]!
-  currentFunds(userId: String!): Int!
+  currentFunds: Int!
   actionCount: [ActionCount]!
 }
 
@@ -600,20 +595,6 @@ func (ec *executionContext) field_Query_actions_args(ctx context.Context, rawArg
 		}
 	}
 	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_currentFunds_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1336,16 +1317,9 @@ func (ec *executionContext) _Query_currentFunds(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_currentFunds_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CurrentFunds(rctx, args["userId"].(string))
+		return ec.resolvers.Query().CurrentFunds(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

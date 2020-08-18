@@ -93,7 +93,7 @@ type Query {
   wishes(input: GetWishInput): [Wish]!
   activities: [Activity]!
   actions(input: GetActionInput): [Action]!
-  currentFunds(userId: String!): Int!
+  currentFunds: Int!
   actionCount: [ActionCount]!
 }
 
