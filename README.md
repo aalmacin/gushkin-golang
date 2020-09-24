@@ -10,7 +10,7 @@ Replace
   export POSTGRES_URL=postgres://admin:password@localhost:8733/gushkinlocal?sslmode=disable
 ```
 
-### Add Auth0
+### Running the app
 
 ```
 chmod +x run-app
